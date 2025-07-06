@@ -1,0 +1,52 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbo",
+    "build": "next build",
+    "build-only": "next build",
+    "start": "next start",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css,scss,yaml,yml}\"",
+    "prettier-check": "prettier --check ."
+  },
+  "dependencies": {
+    "@codesandbox/sandpack-react": "2.20.0",
+    "@googleapis/youtube": "^26.0.1",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/node": "24.0.10",
+    "@types/react": "19.1.8",
+    "@types/react-dom": "19.1.6",
+    "@vercel/analytics": "^1.5.0",
+    "@vercel/speed-insights": "^1.2.0",
+    "auth": "^1.2.3",
+    "autoprefixer": "^10.4.21",
+    "caniuse-lite": "^1.0.30001726",
+    "dotenv": "^17.0.1",
+    "geist": "1.4.2",
+    "next": "^15.3.5",
+    "next-auth": "5.0.0-beta.25",
+    "next-mdx-remote": "^5.0.0",
+    "postcss": "^8.5.6",
+    "postgres": "^3.4.7",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-tweet": "3.2.2",
+    "sugar-high": "^0.9.3",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^3.4.16",
+    "typescript": "5.8.3"
+  },
+  "prettier": {
+    "singleQuote": true,
+    "semi": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "printWidth": 80,
+    "bracketSpacing": true,
+    "arrowParens": "avoid"
+  },
+  "devDependencies": {
+    "eslint-config-prettier": "^10.1.5",
+    "husky": "^9.1.7",
+    "prettier": "^3.6.2"
+  }
+}

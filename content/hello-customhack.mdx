@@ -1,0 +1,56 @@
+---
+title: "I Built a Talking Portfolio at CustomHack.dev"
+publishedAt: '2025-07-05'
+summary: 'A voice-first, generative UI portfolio with a smart recruiter mode'
+---
+
+# Building a Voice-Driven Portfolio at [CustomHack.dev](https://customhack.dev)
+
+For CustomHack.dev, I wanted to experiment with something that felt personal, functional, and different from the usual dev tool or productivity app.
+
+So I built a portfolio that you can talk to. Literally.
+
+Instead of scrolling through sections and reading static content, visitors can speak naturally—ask questions, explore projects, or even say what they're hiring for—and the portfolio responds with voice and updates the UI in real time.
+
+## What It Does
+
+The site works like a normal portfolio if you just want to scroll. But it also has a voice assistant layer that:
+
+- Has a voice mode that enables voice-guided navigation
+- Understands natural language queries like "show me your AI projects" or "tell me about your experience"
+- Supports multiple languages for global accessibility
+- Dynamically updates sections and highlights based on the conversation
+
+There's also a separate "Hire Me" mode specifically for recruiters. It starts by asking what role they're hiring for, and prompts the recruiter to paste the job description. If there's a match, it responds with a tailored pitch—spoken and visual—showing why I'm a good fit based on their needs.
+
+## Why I Built It
+
+Most portfolios are either static or overloaded with animations that don’t add much. I wanted to rethink the experience—make it more interactive, adaptive, and focused on clarity.
+
+This idea also solves a real problem: recruiters often want to know *quickly* if someone is a good fit. Having a portfolio that qualifies them first, and then presents a custom pitch, makes the process faster for both sides.
+
+## Stack
+
+- React, Tailwind, Framer Motion for UI
+- Whisper or Web Speech API for voice input
+- ElevenLabs for voice output
+- GPT-4 for intent parsing and recruiter pitch generation
+- Zustand for state handling
+
+## How It Fit the CustomHack.dev Criteria
+
+- **Impact:** Makes portfolios more interactive and saves recruiters time
+- **Creativity:** Combines voice, LLMs, dynamic UI, and context-aware flows
+- **Personalization:** Reacts differently for each visitor and adapts to conversation
+- **Demo Quality:** Easy to show—talk to it, and the UI responds on the spot
+
+## Try It
+
+You can try it live at [heyavi.me](https://heyavi.me). You don’t need to talk if you don’t want to—but if you do, it’ll guide you through.
+
+## Final Thoughts
+
+Building this made me think a lot about how we present ourselves online—and how AI can make that experience more human, not less.
+
+I might keep refining the recruiter flow and add more features later. For now, it’s a portfolio I actually want people to interact with.
+
