@@ -17,8 +17,9 @@ import {
   ThreadContentMessages,
 } from 'app/components/tambo/thread-content';
 import type { VariantProps } from 'class-variance-authority';
+import { audioManager } from 'lib/audio-manager';
 import { cn } from 'lib/utils';
-import { MessageSquare, Mic, Square, X, PanelRightClose } from 'lucide-react';
+import { MessageSquare, Mic, PanelRightClose, Square, X } from 'lucide-react';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 
@@ -59,10 +60,52 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
     const [mounted, setMounted] = React.useState(false);
     const [isMinimalMode, setIsMinimalMode] = React.useState(true);
     const [isRecording, setIsRecording] = React.useState(false);
+    const [isSpeaking, setIsSpeaking] = React.useState(false);
     const isMac =
       typeof navigator !== 'undefined' && navigator.platform.startsWith('Mac');
     const { thread } = useTambo();
     const { cancel, isIdle } = useTamboThread();
+
+    // Track TTS state using audio manager
+    React.useEffect(() => {
+      const updateSpeakingState = () => {
+        setIsSpeaking(audioManager.isPlaying());
+      };
+
+      // Subscribe to audio manager updates
+      const unsubscribe = audioManager.subscribe(updateSpeakingState);
+
+      // Also listen to custom events for backward compatibility
+      const handleTTSStarted = () => {
+        setIsSpeaking(true);
+      };
+
+      const handleTTSEnded = () => {
+        // Check with audio manager to be sure
+        setIsSpeaking(audioManager.isPlaying());
+      };
+
+      window.addEventListener('tambo:ttsStarted', handleTTSStarted);
+      window.addEventListener('tambo:ttsEnded', handleTTSEnded);
+
+      // Initial state
+      updateSpeakingState();
+
+      return () => {
+        unsubscribe();
+        window.removeEventListener('tambo:ttsStarted', handleTTSStarted);
+        window.removeEventListener('tambo:ttsEnded', handleTTSEnded);
+      };
+    }, []);
+
+    // Emit minimal mode change events
+    React.useEffect(() => {
+      window.dispatchEvent(
+        new CustomEvent('tambo:minimalModeChanged', {
+          detail: { isMinimalMode: isMinimalMode || !open },
+        })
+      );
+    }, [isMinimalMode, open]);
 
     // Ensure we're mounted before creating portal
     React.useEffect(() => {
@@ -165,29 +208,31 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
             </button>
           </div>
 
-          {/* Right side - Chat Interface (only shown when not in minimal mode) */}
-          {!isMinimalMode && (
-            <div
-              ref={ref}
-              className={cn(
-                'w-[440px] bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm h-full flex flex-col shadow-lg transition-all duration-300',
-                className
-              )}
-              {...props}
-            >
-              <div className="flex flex-col h-full p-4 gap-4">
-                {/* Chat messages area - always render container with flex-1 */}
-                <div className="flex-1 min-h-0">
-                  {thread?.messages?.length > 0 && (
-                    <ScrollableMessageContainer className="h-full bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-lg p-4 overflow-y-auto">
-                      <ThreadContent variant={variant}>
-                        <ThreadContentMessages />
-                      </ThreadContent>
-                    </ScrollableMessageContainer>
-                  )}
-                </div>
+          {/* Always render messages but hide them visually when in minimal mode */}
+          {/* This ensures TTS can work even when chat is collapsed */}
+          <div
+            ref={ref}
+            className={cn(
+              'w-[440px] bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm h-full flex flex-col shadow-lg transition-all duration-300',
+              isMinimalMode && 'sr-only', // Hide visually but keep in DOM for TTS
+              className
+            )}
+            {...props}
+          >
+            <div className="flex flex-col h-full p-4 gap-4">
+              {/* Chat messages area - always render container with flex-1 */}
+              <div className="flex-1 min-h-0">
+                {thread?.messages?.length > 0 && (
+                  <ScrollableMessageContainer className="h-full bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-lg p-4 overflow-y-auto">
+                    <ThreadContent variant={variant}>
+                      <ThreadContentMessages />
+                    </ThreadContent>
+                  </ScrollableMessageContainer>
+                )}
+              </div>
 
-                {/* Message input at bottom */}
+              {/* Message input at bottom - only show when not in minimal mode */}
+              {!isMinimalMode && (
                 <div className="bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-lg p-3">
                   <MessageInput contextKey={contextKey}>
                     <MessageInputTextarea />
@@ -198,9 +243,9 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
                     <MessageInputError />
                   </MessageInput>
                 </div>
-              </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Floating button in minimal mode - handles both mic and stop */}
           {isMinimalMode && (
@@ -213,22 +258,27 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
                 zIndex: 50,
               }}
             >
-              {/* Show stop button when thread is running */}
-              {!isIdle ? (
+              {/* Show stop button when thread is running OR when speaking */}
+              {!isIdle || isSpeaking ? (
                 <div className="relative">
-                  {/* Background glow effect */}
+                  {/* Background glow effect - different color for speaking */}
                   <div
                     className="absolute inset-0 -z-10 rounded-sm transition-all duration-500 animate-pulse-glow"
                     style={{
-                      background:
-                        'radial-gradient(circle at center, rgba(255, 59, 48, 0.4) 0%, rgba(255, 59, 48, 0.25) 40%, rgba(255, 59, 48, 0.15) 70%, rgba(255, 59, 48, 0.05) 85%, transparent 100%)',
+                      background: isSpeaking
+                        ? 'radial-gradient(circle at center, rgba(34, 197, 94, 0.4) 0%, rgba(34, 197, 94, 0.25) 40%, rgba(34, 197, 94, 0.15) 70%, rgba(34, 197, 94, 0.05) 85%, transparent 100%)'
+                        : 'radial-gradient(circle at center, rgba(255, 59, 48, 0.4) 0%, rgba(255, 59, 48, 0.25) 40%, rgba(255, 59, 48, 0.15) 70%, rgba(255, 59, 48, 0.05) 85%, transparent 100%)',
                       filter: 'blur(16px)',
                       transform: 'scale(2.5)',
                     }}
                   />
 
                   <button
-                    onClick={() => cancel()}
+                    onClick={() => {
+                      // Stop all TTS when stop button is clicked
+                      window.dispatchEvent(new CustomEvent('tambo:stopAllTTS'));
+                      cancel();
+                    }}
                     className={cn(
                       'w-12 h-12',
                       'bg-white/80 dark:bg-neutral-900/80',
@@ -237,9 +287,11 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
                       'shadow-sm hover:shadow-md',
                       'transition-all duration-200',
                       'flex items-center justify-center',
-                      'text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300'
+                      isSpeaking
+                        ? 'text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300'
+                        : 'text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300'
                     )}
-                    aria-label="Stop thread"
+                    aria-label={isSpeaking ? 'Stop speaking' : 'Stop thread'}
                   >
                     <Square className="w-5 h-5" fill="currentColor" />
                   </button>

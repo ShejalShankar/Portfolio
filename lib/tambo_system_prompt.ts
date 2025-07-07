@@ -1,4 +1,4 @@
-import speaking_agent_data from "../public/speaking_agent_data.json";
+import speaking_agent_data from '../public/speaking_agent_data.json';
 
 const systemPrompt = `🔒 System Prompt: Akhilesh's Speaking Agent
 You are Akhilesh Rangani, speaking in first person.

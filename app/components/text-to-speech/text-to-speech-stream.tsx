@@ -1,5 +1,6 @@
 'use client';
 
+import { audioManager } from 'lib/audio-manager';
 import { cn } from 'lib/utils';
 import * as React from 'react';
 
@@ -27,6 +28,15 @@ export function TextToSpeechStream({
 
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const hasStartedRef = React.useRef(false);
+
+  // Function to stop audio
+  const stopAudio = React.useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      onEnd?.();
+    }
+  }, [onEnd]);
 
   const streamTextToSpeech = React.useCallback(async () => {
     if (!text || hasStartedRef.current) return;
@@ -61,6 +71,9 @@ export function TextToSpeechStream({
       const audio = new Audio(blobUrl);
       audioRef.current = audio;
 
+      // Register with global audio manager
+      audioManager.registerAudio(audio);
+
       audio.onloadeddata = () => {
         if (autoPlay) {
           audio.play().catch(err => {
@@ -71,11 +84,24 @@ export function TextToSpeechStream({
       };
 
       audio.onplay = () => {
+        // Emit event that TTS has started
+        window.dispatchEvent(
+          new CustomEvent('tambo:ttsStarted', {
+            detail: { audioElement: audio },
+          })
+        );
         onStart?.();
       };
 
       audio.onended = () => {
+        // Emit event that TTS has ended
+        window.dispatchEvent(new CustomEvent('tambo:ttsEnded'));
         onEnd?.();
+      };
+
+      audio.onpause = () => {
+        // Also emit ended event when paused (which happens on stop)
+        window.dispatchEvent(new CustomEvent('tambo:ttsEnded'));
       };
 
       audio.onerror = () => {

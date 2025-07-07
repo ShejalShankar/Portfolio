@@ -226,12 +226,35 @@ const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
       return lastAssistantMessage.id === message.id;
     }, [thread?.messages, role, message.id]);
 
+    // Track if this message existed when component mounted
+    const messageExistedOnMount = React.useRef(isLatestAssistantMessage);
+
+    // Track if we've seen this message complete before
+    const hasCompletedBefore = React.useRef(!isLoading);
+
     // Only show TTS for the latest assistant message
     const [showTTS, setShowTTS] = React.useState(false);
 
     React.useEffect(() => {
+      // Only play TTS for messages that:
+      // 1. Are the latest assistant message
+      // 2. Have text content
+      // 3. Are not loading
+      // 4. Were NOT already complete when we first saw them (prevents playing old messages)
       if (isLatestAssistantMessage && textContent && !isLoading) {
-        // Delay showing TTS to avoid playing old messages on page load
+        // If this message was already complete when we mounted, don't play it
+        if (messageExistedOnMount.current && hasCompletedBefore.current) {
+          setShowTTS(false);
+          return;
+        }
+
+        // Stop all other TTS when a new message starts streaming
+        window.dispatchEvent(new CustomEvent('tambo:stopAllTTS'));
+
+        // Mark that we've seen this message complete
+        hasCompletedBefore.current = true;
+
+        // Delay showing TTS to ensure it's a new message
         const timer = setTimeout(() => setShowTTS(true), 100);
         return () => clearTimeout(timer);
       } else {
@@ -311,7 +334,7 @@ const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
               )}
             </div>
 
-            {/* Add TTS controls for assistant messages */}
+            {/* Add TTS for assistant messages */}
             {showTTS &&
               role === 'assistant' &&
               textContent &&

@@ -2,6 +2,7 @@
 
 import { useTamboThread, useTamboThreadInput } from '@tambo-ai/react';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { audioManager } from 'lib/audio-manager';
 import { cn } from 'lib/utils';
 import { ArrowUp, Square } from 'lucide-react';
 import * as React from 'react';
@@ -342,12 +343,49 @@ const MessageInputSubmitButton = React.forwardRef<
 >(({ className, children, ...props }, ref) => {
   const { isPending } = useMessageInputContext();
   const { cancel } = useTamboThread();
+  const [isSpeaking, setIsSpeaking] = React.useState(false);
+
+  // Track TTS state using audio manager
+  React.useEffect(() => {
+    const updateSpeakingState = () => {
+      setIsSpeaking(audioManager.isPlaying());
+    };
+
+    // Subscribe to audio manager updates
+    const unsubscribe = audioManager.subscribe(updateSpeakingState);
+
+    // Also listen to custom events for backward compatibility
+    const handleTTSStarted = () => {
+      setIsSpeaking(true);
+    };
+
+    const handleTTSEnded = () => {
+      // Check with audio manager to be sure
+      setIsSpeaking(audioManager.isPlaying());
+    };
+
+    window.addEventListener('tambo:ttsStarted', handleTTSStarted);
+    window.addEventListener('tambo:ttsEnded', handleTTSEnded);
+
+    // Initial state
+    updateSpeakingState();
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('tambo:ttsStarted', handleTTSStarted);
+      window.removeEventListener('tambo:ttsEnded', handleTTSEnded);
+    };
+  }, []);
 
   const handleCancel = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Stop all TTS when cancel button is clicked
+    window.dispatchEvent(new CustomEvent('tambo:stopAllTTS'));
     cancel();
   };
+
+  const showCancelButton = isPending || isSpeaking;
 
   const buttonClasses = cn(
     'w-9 h-9 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-md hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:opacity-50 flex items-center justify-center cursor-pointer transition-colors duration-200',
@@ -357,15 +395,17 @@ const MessageInputSubmitButton = React.forwardRef<
   return (
     <button
       ref={ref}
-      type={isPending ? 'button' : 'submit'}
-      onClick={isPending ? handleCancel : undefined}
+      type={showCancelButton ? 'button' : 'submit'}
+      onClick={showCancelButton ? handleCancel : undefined}
       className={buttonClasses}
-      aria-label={isPending ? 'Cancel message' : 'Send message'}
-      data-slot={isPending ? 'message-input-cancel' : 'message-input-submit'}
+      aria-label={showCancelButton ? 'Cancel message' : 'Send message'}
+      data-slot={
+        showCancelButton ? 'message-input-cancel' : 'message-input-submit'
+      }
       {...props}
     >
       {children ??
-        (isPending ? (
+        (showCancelButton ? (
           <Square className="w-4 h-4" fill="currentColor" />
         ) : (
           <ArrowUp className="w-4 h-4" />
