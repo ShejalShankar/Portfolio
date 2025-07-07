@@ -126,7 +126,7 @@ export function CanvasSpace({ className }: CanvasSpaceProps) {
   return (
     <div
       className={cn(
-        'h-screen flex-1 flex flex-col bg-white/50 backdrop-blur-sm overflow-hidden border-l border-flat',
+        'h-screen flex-1 flex flex-col bg-white/50 backdrop-blur-sm overflow-hidden',
         className
       )}
       data-canvas-space="true"
@@ -150,9 +150,8 @@ export function CanvasSpace({ className }: CanvasSpaceProps) {
           ) : (
             <div className="flex-1 flex items-center justify-center text-center p-6">
               <div className="space-y-2">
-                <p className="text-gray-600 font-medium">Canvas is empty</p>
-                <p className="text-sm text-gray-500">
-                  Interactive components will appear here as they are generated
+                <p className="text-gray-600 text-sm">
+                  Talk with me by clicking on the mic icon.
                 </p>
               </div>
             </div>

@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from 'lib/utils';
 import { useTambo } from '@tambo-ai/react';
+import { cn } from 'lib/utils';
 import * as React from 'react';
 import { useEffect, useRef } from 'react';
 
@@ -55,9 +55,28 @@ export const ScrollableMessageContainer = React.forwardRef<
       ref={scrollContainerRef}
       className={cn(
         'flex-1 overflow-y-auto',
-        '[&::-webkit-scrollbar]:w-[6px]',
-        '[&::-webkit-scrollbar-thumb]:bg-gray-300',
-        '[&::-webkit-scrollbar:horizontal]:h-[4px]',
+        // Scrollbar track
+        '[&::-webkit-scrollbar]:w-2',
+        '[&::-webkit-scrollbar]:h-2',
+        // Scrollbar track background
+        '[&::-webkit-scrollbar-track]:bg-transparent',
+        // Scrollbar thumb
+        '[&::-webkit-scrollbar-thumb]:bg-neutral-300/50',
+        '[&::-webkit-scrollbar-thumb]:dark:bg-neutral-600/50',
+        '[&::-webkit-scrollbar-thumb]:rounded-full',
+        '[&::-webkit-scrollbar-thumb]:transition-colors',
+        // Scrollbar thumb hover
+        '[&::-webkit-scrollbar-thumb:hover]:bg-neutral-400/70',
+        '[&::-webkit-scrollbar-thumb:hover]:dark:bg-neutral-500/70',
+        // Scrollbar corner (where horizontal and vertical scrollbars meet)
+        '[&::-webkit-scrollbar-corner]:bg-transparent',
+        // Firefox scrollbar styling
+        'scrollbar-thin',
+        'scrollbar-track-transparent',
+        'scrollbar-thumb-neutral-300/50',
+        'dark:scrollbar-thumb-neutral-600/50',
+        // Add some padding to prevent content from touching scrollbar
+        'pr-1',
         className
       )}
       data-slot="scrollable-message-container"

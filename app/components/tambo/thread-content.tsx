@@ -1,5 +1,6 @@
 'use client';
 
+import { type TamboThreadMessage, useTambo } from '@tambo-ai/react';
 import {
   Message,
   MessageContent,
@@ -7,9 +8,8 @@ import {
   ToolcallInfo,
   type messageVariants,
 } from 'app/components/tambo/message';
-import { cn } from 'lib/utils';
-import { type TamboThreadMessage, useTambo } from '@tambo-ai/react';
 import { type VariantProps } from 'class-variance-authority';
+import { cn } from 'lib/utils';
 import * as React from 'react';
 
 /**
@@ -157,16 +157,10 @@ const ThreadContentMessages = React.forwardRef<
               <div
                 className={cn(
                   'flex flex-col',
-                  message.role === 'assistant' ? 'w-full' : 'max-w-3xl'
+                  message.role === 'assistant' ? 'max-w-[85%]' : 'max-w-[85%]'
                 )}
               >
-                <MessageContent
-                  className={
-                    message.role === 'assistant'
-                      ? 'text-primary font-sans'
-                      : 'text-primary bg-container hover:bg-backdrop font-sans'
-                  }
-                />
+                <MessageContent />
                 <ToolcallInfo />
                 <MessageRenderedComponentArea className="w-full" />
               </div>

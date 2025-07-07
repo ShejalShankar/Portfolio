@@ -19,16 +19,16 @@ const messageInputVariants = cva('w-full', {
     variant: {
       default: '',
       solid: [
-        '[&>div]:bg-background',
-        '[&>div]:border-0',
-        '[&>div]:shadow-xl [&>div]:shadow-black/5 [&>div]:dark:shadow-black/20',
-        '[&>div]:ring-1 [&>div]:ring-black/5 [&>div]:dark:ring-white/10',
+        '[&>div]:bg-white [&>div]:dark:bg-neutral-900',
+        '[&>div]:border [&>div]:border-neutral-200 [&>div]:dark:border-neutral-800',
+        '[&>div]:shadow-sm [&>div]:hover:shadow-md',
+        '[&>div]:transition-all [&>div]:duration-200',
         '[&_textarea]:bg-transparent',
         '[&_textarea]:rounded-lg',
       ].join(' '),
       bordered: [
         '[&>div]:bg-transparent',
-        '[&>div]:border-2 [&>div]:border-gray-300 [&>div]:dark:border-zinc-600',
+        '[&>div]:border [&>div]:border-neutral-300 [&>div]:dark:border-neutral-700',
         '[&>div]:shadow-none',
         '[&_textarea]:bg-transparent',
         '[&_textarea]:border-0',
@@ -222,7 +222,7 @@ const MessageInput = React.forwardRef<HTMLFormElement, MessageInputProps>(
           data-slot="message-input-form"
           {...props}
         >
-          <div className="flex flex-col border border-gray-200 rounded-xl bg-background shadow-md p-2 px-3">
+          <div className="flex flex-col border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 shadow-sm hover:shadow-md transition-all duration-200 p-3">
             {children}
           </div>
         </form>
@@ -255,7 +255,7 @@ export interface MessageInputTextareaProps
  */
 const MessageInputTextarea = ({
   className,
-  placeholder = 'What do you want to do?',
+  placeholder = 'Type a message...',
   ...props
 }: MessageInputTextareaProps) => {
   const { value, setValue, textareaRef, handleSubmit } =
@@ -283,7 +283,23 @@ const MessageInputTextarea = ({
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       className={cn(
-        'flex-1 p-3 rounded-t-lg bg-background text-foreground resize-none text-sm min-h-[82px] max-h-[40vh] focus:outline-none placeholder:text-muted-foreground/50',
+        'flex-1 bg-transparent text-background resize-none text-[15px] leading-relaxed min-h-[80px] max-h-[200px]',
+        // Remove all focus styles
+        'focus:outline-none focus:ring-0 focus:border-transparent',
+        'focus-visible:outline-none focus-visible:ring-0',
+        // Remove any browser default outlines
+        'outline-none border-none',
+        // Placeholder styling
+        'placeholder:text-neutral-500 dark:placeholder:text-neutral-400',
+        // Custom scrollbar for textarea
+        '[&::-webkit-scrollbar]:w-2',
+        '[&::-webkit-scrollbar-track]:bg-transparent',
+        '[&::-webkit-scrollbar-thumb]:bg-neutral-300/50',
+        '[&::-webkit-scrollbar-thumb]:dark:bg-neutral-600/50',
+        '[&::-webkit-scrollbar-thumb]:rounded-full',
+        '[&::-webkit-scrollbar-thumb:hover]:bg-neutral-400/70',
+        '[&::-webkit-scrollbar-thumb:hover]:dark:bg-neutral-500/70',
+        'scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-300/50 dark:scrollbar-thumb-neutral-600/50',
         className
       )}
       disabled={isPending}
@@ -334,7 +350,7 @@ const MessageInputSubmitButton = React.forwardRef<
   };
 
   const buttonClasses = cn(
-    'w-10 h-10 bg-black/80 text-white rounded-lg hover:bg-black/70 disabled:opacity-50 flex items-center justify-center cursor-pointer',
+    'w-9 h-9 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-md hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:opacity-50 flex items-center justify-center cursor-pointer transition-colors duration-200',
     className
   );
 
@@ -352,7 +368,7 @@ const MessageInputSubmitButton = React.forwardRef<
         (isPending ? (
           <Square className="w-4 h-4" fill="currentColor" />
         ) : (
-          <ArrowUp className="w-5 h-5" />
+          <ArrowUp className="w-4 h-4" />
         ))}
     </button>
   );
@@ -391,7 +407,7 @@ const MessageInputError = React.forwardRef<
   return (
     <p
       ref={ref}
-      className={cn('text-sm text-[hsl(var(--destructive))] mt-2', className)}
+      className={cn('text-sm text-red-600 dark:text-red-400 mt-2', className)}
       data-slot="message-input-error"
       {...props}
     >
@@ -423,7 +439,7 @@ const MessageInputToolbar = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn('flex justify-end items-center gap-2 mt-2 p-1', className)}
+      className={cn('flex justify-end items-center gap-2 mt-1', className)}
       data-slot="message-input-toolbar"
       {...props}
     >
@@ -448,10 +464,18 @@ MessageInputToolbar.displayName = 'MessageInput.Toolbar';
  * </MessageInput>
  * ```
  */
+interface MessageInputSpeechButtonProps
+  extends React.HTMLAttributes<HTMLDivElement> {
+  /** Custom className for the speech button */
+  buttonClassName?: string;
+  /** Callback when recording state changes */
+  onRecordingChange?: (recording: boolean) => void;
+}
+
 const MessageInputSpeechButton = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
+  MessageInputSpeechButtonProps
+>(({ className, buttonClassName, onRecordingChange, ...props }, ref) => {
   const { setValue, isPending, setShouldAutoSubmit } = useMessageInputContext();
 
   const handleTranscript = (transcript: string) => {
@@ -469,6 +493,8 @@ const MessageInputSpeechButton = React.forwardRef<
         onTranscript={handleTranscript}
         onSubmit={handleVoiceSubmit}
         disabled={isPending}
+        className={buttonClassName}
+        onRecordingChange={onRecordingChange}
       />
     </div>
   );

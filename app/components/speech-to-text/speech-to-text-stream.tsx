@@ -10,6 +10,7 @@ interface SpeechToTextStreamProps {
   onSubmit: () => void;
   disabled?: boolean;
   className?: string;
+  onRecordingChange?: (recording: boolean) => void;
 }
 
 export function SpeechToTextStream({
@@ -17,6 +18,7 @@ export function SpeechToTextStream({
   onSubmit,
   disabled = false,
   className,
+  onRecordingChange,
 }: SpeechToTextStreamProps) {
   const [isRecording, setIsRecording] = React.useState(false);
   const [isProcessing, setIsProcessing] = React.useState(false);
@@ -229,6 +231,7 @@ export function SpeechToTextStream({
       // Start recording
       mediaRecorder.start(100); // Small chunks for responsiveness
       setIsRecording(true);
+      onRecordingChange?.(true);
       setIsProcessing(false);
 
       // Start monitoring speech
@@ -242,6 +245,7 @@ export function SpeechToTextStream({
 
   const stopRecording = async () => {
     setIsRecording(false);
+    onRecordingChange?.(false);
 
     // Clear any pending timeouts
     if (silenceTimeoutRef.current) {
@@ -292,11 +296,16 @@ export function SpeechToTextStream({
         onClick={handleClick}
         disabled={disabled || isProcessing}
         className={cn(
-          'p-2 rounded-lg transition-all duration-200',
-          'hover:bg-gray-100 dark:hover:bg-gray-800',
-          'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500',
-          isRecording &&
-            'bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400',
+          'w-9 h-9 rounded-md transition-all duration-200',
+          'flex items-center justify-center',
+          'hover:bg-neutral-100 dark:hover:bg-neutral-800',
+          'focus:outline-none focus:ring-1 focus:ring-neutral-400 dark:focus:ring-neutral-600',
+          'text-neutral-600 dark:text-neutral-400',
+          isRecording && [
+            'bg-red-100 dark:bg-red-900/20',
+            'text-red-600 dark:text-red-400',
+            'hover:bg-red-200 dark:hover:bg-red-900/30',
+          ],
           isProcessing && 'opacity-50 cursor-not-allowed',
           disabled && 'opacity-50 cursor-not-allowed',
           className
@@ -305,28 +314,16 @@ export function SpeechToTextStream({
         title={isRecording ? 'Stop recording' : 'Start voice input'}
       >
         {isProcessing ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
+          <Loader2 className="w-4 h-4 animate-spin" />
         ) : isRecording ? (
-          <MicOff className="w-5 h-5" />
+          <MicOff className="w-4 h-4" />
         ) : (
-          <Mic className="w-5 h-5" />
+          <Mic className="w-4 h-4" />
         )}
       </button>
 
-      {isRecording && (
-        <div className="flex items-center gap-2">
-          <div className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-          </div>
-          <span className="text-xs text-gray-500 dark:text-gray-400">
-            Listening...
-          </span>
-        </div>
-      )}
-
       {error && (
-        <div className="absolute top-full mt-1 left-0 text-xs text-red-500 whitespace-nowrap z-10 bg-white dark:bg-gray-900 px-2 py-1 rounded shadow-lg">
+        <div className="absolute top-full mt-1 left-0 text-xs text-red-600 dark:text-red-400 whitespace-nowrap z-10 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 px-2 py-1 rounded-md shadow-sm">
           {error}
         </div>
       )}
