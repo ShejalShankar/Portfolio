@@ -5,7 +5,6 @@ import { useTambo } from '@tambo-ai/react';
 import type TamboAI from '@tambo-ai/typescript-sdk';
 import { createMarkdownComponents } from 'app/components/tambo/markdown-components';
 import { cva, type VariantProps } from 'class-variance-authority';
-import stringify from 'json-stringify-pretty-compact';
 import { checkHasContent, getSafeContent } from 'lib/thread-hooks';
 import { cn } from 'lib/utils';
 import { Check, ChevronDown, ExternalLink, Loader2, X } from 'lucide-react';
@@ -339,7 +338,7 @@ const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
               role === 'assistant' &&
               textContent &&
               !message.isCancelled && (
-                <div className="mt-2 flex items-center">
+                <div className="flex items-center">
                   <TextToSpeechStream
                     text={textContent}
                     autoPlay={true}
@@ -422,14 +421,56 @@ const ToolcallInfo = React.forwardRef<HTMLDivElement, ToolcallInfoProps>(
 
     const toolStatusMessage = getToolStatusMessage(message, isLoading);
 
+    // Shared scrollbar classes for consistency
+    const scrollbarClasses = cn(
+      '[&::-webkit-scrollbar]:w-1.5',
+      '[&::-webkit-scrollbar]:h-1.5',
+      '[&::-webkit-scrollbar-track]:bg-transparent',
+      '[&::-webkit-scrollbar-thumb]:bg-neutral-300/50',
+      '[&::-webkit-scrollbar-thumb]:dark:bg-neutral-600/50',
+      '[&::-webkit-scrollbar-thumb]:rounded-full',
+      '[&::-webkit-scrollbar-thumb:hover]:bg-neutral-400/70',
+      '[&::-webkit-scrollbar-thumb:hover]:dark:bg-neutral-500/70',
+      '[&::-webkit-scrollbar-corner]:bg-transparent',
+      'scrollbar-thin',
+      'scrollbar-track-transparent',
+      'scrollbar-thumb-neutral-300/50',
+      'dark:scrollbar-thumb-neutral-600/50'
+    );
+
+    // Format the response content as JSON when needed
+    const formatResponseContent = (content: any) => {
+      if (!content) return 'Empty response';
+
+      const safeContent = getSafeContent(content);
+
+      // If it's already a string, check if it's JSON
+      if (typeof safeContent === 'string') {
+        try {
+          // Try to parse and re-stringify for consistent formatting
+          const parsed = JSON.parse(safeContent);
+          return JSON.stringify(parsed, null, 2);
+        } catch {
+          // If not JSON, return as-is
+          return safeContent;
+        }
+      }
+
+      // For objects/arrays, stringify them
+      return JSON.stringify(safeContent, null, 2);
+    };
+
     return (
       <div
         ref={ref}
-        className={cn('flex flex-col items-start text-xs mt-2', className)}
+        className={cn(
+          'flex flex-col items-start text-xs mt-2 max-w-full',
+          className
+        )}
         data-slot="toolcall-info"
         {...props}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 max-w-full">
           <button
             type="button"
             aria-expanded={isExpanded}
@@ -437,16 +478,15 @@ const ToolcallInfo = React.forwardRef<HTMLDivElement, ToolcallInfoProps>(
             onClick={() => setIsExpanded(!isExpanded)}
             className={cn(
               'flex items-center gap-1.5 cursor-pointer',
-              'hover:bg-neutral-100 dark:hover:bg-neutral-800',
-              'rounded-md px-2 py-1 select-none w-fit',
-              'text-neutral-600 dark:text-neutral-400',
+              'text-neutral-500 dark:text-neutral-400',
+              'hover:text-neutral-700 dark:hover:text-neutral-200',
               'transition-colors duration-200'
             )}
           >
             {hasToolError ? (
               <X className="w-3 h-3 text-red-500" />
             ) : isLoading ? (
-              <Loader2 className="w-3 h-3 text-neutral-500 animate-spin" />
+              <Loader2 className="w-3 h-3 animate-spin" />
             ) : (
               <Check className="w-3 h-3 text-green-600 dark:text-green-500" />
             )}
@@ -454,53 +494,60 @@ const ToolcallInfo = React.forwardRef<HTMLDivElement, ToolcallInfoProps>(
             <ChevronDown
               className={cn(
                 'w-3 h-3 transition-transform duration-200',
-                !isExpanded && '-rotate-90'
+                isExpanded && 'rotate-180'
               )}
             />
           </button>
           <div
             id={toolDetailsId}
             className={cn(
-              'flex flex-col gap-2 pl-4 overflow-hidden transition-[max-height,opacity] duration-300',
-              'text-neutral-600 dark:text-neutral-400',
+              'transition-[max-height,opacity] duration-200',
+              'max-w-full overflow-hidden',
               isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
             )}
           >
-            <span className="whitespace-pre-wrap">
-              <span className="font-medium">tool:</span>{' '}
-              {toolCallRequest?.toolName}
-            </span>
-            <div>
-              <span className="font-medium">parameters:</span>
-              <pre className="mt-1 p-2 bg-neutral-100 dark:bg-neutral-800 rounded-md overflow-x-auto">
-                {stringify(keyifyParameters(toolCallRequest?.parameters))}
-              </pre>
-            </div>
-            {associatedToolResponse && (
-              <>
-                <span className="font-medium">result:</span>
-                <div className="bg-neutral-100 dark:bg-neutral-800 rounded-md p-2">
-                  {!associatedToolResponse.content ? (
-                    <span className="text-neutral-500 dark:text-neutral-400 italic">
-                      Empty response
-                    </span>
-                  ) : React.isValidElement(associatedToolResponse.content) ? (
-                    associatedToolResponse.content
-                  ) : markdown ? (
-                    <ReactMarkdown components={createMarkdownComponents()}>
-                      {typeof getSafeContent(associatedToolResponse.content) ===
-                      'string'
-                        ? (getSafeContent(
-                            associatedToolResponse.content
-                          ) as string)
-                        : ''}
-                    </ReactMarkdown>
-                  ) : (
-                    getSafeContent(associatedToolResponse.content)
-                  )}
+            <div
+              className={cn(
+                'overflow-y-auto max-h-80 pr-1 pl-4',
+                scrollbarClasses
+              )}
+            >
+              <div className="space-y-3 text-neutral-600 dark:text-neutral-400">
+                <div>
+                  <span className="font-medium">tool:</span>{' '}
+                  <span className="font-mono">{toolCallRequest?.toolName}</span>
                 </div>
-              </>
-            )}
+
+                <div className="space-y-1">
+                  <span className="font-medium">parameters:</span>
+                  <div className={cn('overflow-x-auto', scrollbarClasses)}>
+                    <pre className="p-2 bg-neutral-100 dark:bg-neutral-800/50 rounded text-[11px] font-mono whitespace-pre">
+                      {JSON.stringify(
+                        keyifyParameters(toolCallRequest?.parameters),
+                        null,
+                        2
+                      )}
+                    </pre>
+                  </div>
+                </div>
+
+                {associatedToolResponse && (
+                  <div className="space-y-1">
+                    <span className="font-medium">result:</span>
+                    <div
+                      className={cn(
+                        'bg-neutral-100 dark:bg-neutral-800/50 rounded p-2 overflow-x-auto',
+                        scrollbarClasses
+                      )}
+                    >
+                      <pre className="text-[11px] font-mono whitespace-pre">
+                        {formatResponseContent(associatedToolResponse.content)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

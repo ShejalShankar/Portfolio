@@ -1,5 +1,9 @@
 import { type TamboComponent } from '@tambo-ai/react';
 import {
+  BlogCard,
+  BlogCardSchema,
+} from '../app/components/blog/list/blog-card';
+import {
   CurrentWorkSection,
   CurrentWorkSectionSchema,
 } from '../app/components/current-work-section';
@@ -11,6 +15,7 @@ import {
   ProjectsSection,
   ProjectsSectionSchema,
 } from '../app/components/projects-section';
+import { blogTools } from './tools/blog-tools';
 
 export const components: TamboComponent[] = [
   {
@@ -55,6 +60,24 @@ Each project can include a title, description, URL, optional technologies list, 
     component: ProjectsSection,
     propsSchema: ProjectsSectionSchema,
   },
+  {
+    name: 'BlogCard',
+    description: `A component that displays a blog post card with title, date, and summary. Use this to show blog posts with their descriptions so users can understand what each post is about.
+
+Works perfectly with the fetchBlogPosts tool which returns summaries.
+
+Example usage:
+- Display blog posts with their summaries when users ask "What blog posts are available?"
+- Show a preview of blog content without needing to navigate to the full post
+- Creates an attractive card layout with hover effects
+
+Each card links to the full blog post at /blog/[slug].`,
+    component: BlogCard,
+    propsSchema: BlogCardSchema,
+  },
 ];
+
+// Export tools separately so they can be registered in the provider
+export const tools = blogTools;
 
 export default components;
