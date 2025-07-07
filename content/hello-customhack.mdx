@@ -1,56 +1,108 @@
 ---
-title: "I Built a Talking Portfolio at CustomHack.dev"
-publishedAt: '2025-07-05'
+title: 'I Built a Talking Portfolio at CustomHack.dev'
+publishedAt: '2025-07-07'
 summary: 'A voice-first, generative UI portfolio with a smart recruiter mode'
 ---
 
-# Building a Voice-Driven Portfolio at [CustomHack.dev](https://customhack.dev)
+# Building a Portfolio You Can Talk To
 
-For CustomHack.dev, I wanted to experiment with something that felt personal, functional, and different from the usual dev tool or productivity app.
+I wanted my portfolio to be different. Not just another static site with sections to scroll through, but something that feels alive and conversational. So I built [heyavi.me](https://heyavi.me) - a portfolio that literally talks back to you.
 
-So I built a portfolio that you can talk to. Literally.
-
-Instead of scrolling through sections and reading static content, visitors can speak naturally—ask questions, explore projects, or even say what they're hiring for—and the portfolio responds with voice and updates the UI in real time.
+Instead of traditional navigation, visitors can click the mic button and have a natural conversation. Ask about my projects, experience, or even paste a job link - and the AI responds with both voice and dynamically generated UI components.
 
 ## What It Does
 
-The site works like a normal portfolio if you just want to scroll. But it also has a voice assistant layer that:
+The portfolio works as a traditional site if you prefer scrolling, but the magic happens when you interact with the AI assistant:
 
-- Has a voice mode that enables voice-guided navigation
-- Understands natural language queries like "show me your AI projects" or "tell me about your experience"
-- Supports multiple languages for global accessibility
-- Dynamically updates sections and highlights based on the conversation
+- **Voice Conversations**: Click the mic and speak naturally - "What projects have you built?" or "Tell me about your work at tambo"
+- **Dynamic UI Generation**: The AI doesn't just talk - it shows relevant components like photo grids, project cards, or my resume
+- **Job Analysis**: Paste any job posting URL and get an instant analysis showing how I match the requirements
+- **Smart Context**: The AI adapts its responses based on who you are - student, recruiter, or fellow developer
 
-There's also a separate "Hire Me" mode specifically for recruiters. It starts by asking what role they're hiring for, and prompts the recruiter to paste the job description. If there's a match, it responds with a tailored pitch—spoken and visual—showing why I'm a good fit based on their needs.
+## The Technical Implementation
 
-## Why I Built It
+### Core Stack
 
-Most portfolios are either static or overloaded with animations that don’t add much. I wanted to rethink the experience—make it more interactive, adaptive, and focused on clarity.
+- **Framework**: Next.js 15 with App Router for optimal performance
+- **AI Integration**: [Tambo AI](https://tambo.co) for the conversational layer
+- **Voice**: OpenAI Whisper for speech-to-text, ElevenLabs for text-to-speech
+- **Database**: PostgreSQL for blog comments, guestbook, and analytics
+- **Auth**: NextAuth.js with GitHub OAuth
+- **Styling**: Tailwind CSS with custom glassmorphic effects
+- **Crawling**: [Firecrawl](https://firecrawl.dev) for efficiently crawling links pasted into the chat
 
-This idea also solves a real problem: recruiters often want to know *quickly* if someone is a good fit. Having a portfolio that qualifies them first, and then presents a custom pitch, makes the process faster for both sides.
+### Voice Processing Pipeline
 
-## Stack
+The voice interaction flow is surprisingly complex:
 
-- React, Tailwind, Framer Motion for UI
-- Whisper or Web Speech API for voice input
-- ElevenLabs for voice output
-- GPT-4 for intent parsing and recruiter pitch generation
-- Zustand for state handling
+1. **Voice Activity Detection**: Real-time audio analysis to detect when you start/stop speaking
+2. **Smart Silence Detection**: Waits for natural pauses before processing (1 second threshold)
+3. **Audio Conversion**: WebM to WAV format for Whisper API compatibility
+4. **Submission Detection**: Uses GPT-4 to determine if the transcript is complete
+5. **Global Audio Management**: Centralized system to handle TTS playback and prevent overlaps
 
-## How It Fit the CustomHack.dev Criteria
+### Dynamic Component System
 
-- **Impact:** Makes portfolios more interactive and saves recruiters time
-- **Creativity:** Combines voice, LLMs, dynamic UI, and context-aware flows
-- **Personalization:** Reacts differently for each visitor and adapts to conversation
-- **Demo Quality:** Easy to show—talk to it, and the UI responds on the spot
+The AI can render 10+ different components based on context:
 
-## Try It
+- **PhotoGridSection** - Shows my photos with captions
+- **ProjectsSection** - Displays projects with descriptions
+- **ResumeOverview** - Professional background + resume button
+- **JobAnalysisCard** - Visualizes job matching results
+- **GuestbookDisplay** - Shows visitor messages
+- **SocialMediaGrid** - Contact links in a grid layout
 
-You can try it live at [heyavi.me](https://heyavi.me). You don’t need to talk if you don’t want to—but if you do, it’ll guide you through.
+### The "Hire Me" Intelligence
 
-## Final Thoughts
+When someone shares a job posting URL:
 
-Building this made me think a lot about how we present ourselves online—and how AI can make that experience more human, not less.
+1. [Firecrawl](https://firecrawl.dev) extracts the job content
+2. AI analyzes requirements vs. my experience
+3. Generates a match score and talking points
+4. Shows a "JobAnalysisCard" with visual breakdown
+5. Provides a conversational, tailored pitch
 
-I might keep refining the recruiter flow and add more features later. For now, it’s a portfolio I actually want people to interact with.
+## Design Decisions
 
+### Minimal UI, Maximum Impact
+
+- **Floating Mic Button**: Always accessible, with visual feedback for recording/speaking states
+- **Glassmorphic Panels**: Semi-transparent overlays that don't obstruct content
+- **Progressive Disclosure**: Start with just a mic, expand to show conversation history
+- **Keyboard Shortcuts**: ⌘+K for power users
+
+### Voice-First, But Not Voice-Only
+
+The site remains fully functional without voice:
+
+- Traditional navigation in the header
+- All content accessible via scrolling
+- Text input option in the chat interface
+- Fallbacks for unsupported browsers
+
+## Challenges & Solutions
+
+**Audio Feedback Loops**: Solved with a global audio manager that tracks all playing audio and stops previous TTS when new messages arrive.
+
+**Mobile Voice Input**: Browser limitations required careful handling of permissions and fallback options.
+
+**Component Generation Timing**: The AI needed careful prompting to generate components at the right moments, not too eagerly.
+
+## What's Next
+
+I'm continuing to refine the experience:
+
+- More sophisticated job matching algorithms
+- Multi-language support for global opportunities
+- Voice personality customization
+- Integration with more portfolio platforms
+
+## Try It Yourself
+
+Visit [heyavi.me](https://heyavi.me) and click the mic button. Ask me anything - about my projects, experience, or paste a job link to see the analysis in action.
+
+The entire project is [open source on GitHub](https://github.com/akhileshrangani4/heyavi.me). Feel free to fork it and build your own talking portfolio!
+
+## Key Takeaways
+
+Building this taught me that AI can enhance personal websites without making them feel robotic. The key is maintaining authenticity while adding genuinely useful interactions. A portfolio should tell your story - mine just happens to tell it out loud.
