@@ -2,10 +2,11 @@
 
 import { useTamboThread, useTamboThreadInput } from '@tambo-ai/react';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { audioManager } from 'lib/audio-manager';
 import { cn } from 'lib/utils';
 import { ArrowUp, Square } from 'lucide-react';
 import * as React from 'react';
-import { SpeechToTextStream } from './speech-to-text-stream';
+import { SpeechToTextStream } from '../speech-to-text/speech-to-text-stream';
 
 /**
  * CSS variants for the message input container
@@ -19,16 +20,16 @@ const messageInputVariants = cva('w-full', {
     variant: {
       default: '',
       solid: [
-        '[&>div]:bg-background',
-        '[&>div]:border-0',
-        '[&>div]:shadow-xl [&>div]:shadow-black/5 [&>div]:dark:shadow-black/20',
-        '[&>div]:ring-1 [&>div]:ring-black/5 [&>div]:dark:ring-white/10',
+        '[&>div]:bg-white [&>div]:dark:bg-neutral-900',
+        '[&>div]:border [&>div]:border-neutral-200 [&>div]:dark:border-neutral-800',
+        '[&>div]:shadow-sm [&>div]:hover:shadow-md',
+        '[&>div]:transition-all [&>div]:duration-200',
         '[&_textarea]:bg-transparent',
         '[&_textarea]:rounded-lg',
       ].join(' '),
       bordered: [
         '[&>div]:bg-transparent',
-        '[&>div]:border-2 [&>div]:border-gray-300 [&>div]:dark:border-zinc-600',
+        '[&>div]:border [&>div]:border-neutral-300 [&>div]:dark:border-neutral-700',
         '[&>div]:shadow-none',
         '[&_textarea]:bg-transparent',
         '[&_textarea]:border-0',
@@ -52,6 +53,7 @@ const messageInputVariants = cva('w-full', {
  * @property {HTMLTextAreaElement|null} textareaRef - Reference to the textarea element
  * @property {string | null} submitError - Error from the submission
  * @property {function} setSubmitError - Function to set the submission error
+ * @property {function} setShouldAutoSubmit - Function to set the auto-submit flag
  */
 interface MessageInputContextValue {
   value: string;
@@ -67,6 +69,7 @@ interface MessageInputContextValue {
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   submitError: string | null;
   setSubmitError: React.Dispatch<React.SetStateAction<string | null>>;
+  setShouldAutoSubmit: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 /**
@@ -127,6 +130,7 @@ const MessageInput = React.forwardRef<HTMLFormElement, MessageInputProps>(
     const [displayValue, setDisplayValue] = React.useState('');
     const [submitError, setSubmitError] = React.useState<string | null>(null);
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+    const [shouldAutoSubmit, setShouldAutoSubmit] = React.useState(false);
 
     React.useEffect(() => {
       setDisplayValue(value);
@@ -134,6 +138,22 @@ const MessageInput = React.forwardRef<HTMLFormElement, MessageInputProps>(
         textareaRef.current.focus();
       }
     }, [value]);
+
+    // Handle auto-submission when value is set and flag is true
+    React.useEffect(() => {
+      if (shouldAutoSubmit && value.trim()) {
+        setShouldAutoSubmit(false);
+        // Create and dispatch a synthetic submit event
+        const form = textareaRef.current?.form;
+        if (form) {
+          const submitEvent = new Event('submit', {
+            bubbles: true,
+            cancelable: true,
+          });
+          form.dispatchEvent(submitEvent);
+        }
+      }
+    }, [value, shouldAutoSubmit]);
 
     const handleSubmit = React.useCallback(
       async (e: React.FormEvent) => {
@@ -179,6 +199,7 @@ const MessageInput = React.forwardRef<HTMLFormElement, MessageInputProps>(
         textareaRef,
         submitError,
         setSubmitError,
+        setShouldAutoSubmit,
       }),
       [
         displayValue,
@@ -202,7 +223,7 @@ const MessageInput = React.forwardRef<HTMLFormElement, MessageInputProps>(
           data-slot="message-input-form"
           {...props}
         >
-          <div className="flex flex-col border border-gray-200 rounded-xl bg-background shadow-md p-2 px-3">
+          <div className="flex flex-col border border-neutral-200 dark:border-neutral-800 rounded-lg bg-white dark:bg-neutral-900 shadow-sm hover:shadow-md transition-all duration-200 p-3">
             {children}
           </div>
         </form>
@@ -235,7 +256,7 @@ export interface MessageInputTextareaProps
  */
 const MessageInputTextarea = ({
   className,
-  placeholder = 'What do you want to do?',
+  placeholder = 'Type a message...',
   ...props
 }: MessageInputTextareaProps) => {
   const { value, setValue, textareaRef, handleSubmit } =
@@ -263,7 +284,23 @@ const MessageInputTextarea = ({
       onChange={handleChange}
       onKeyDown={handleKeyDown}
       className={cn(
-        'flex-1 p-3 rounded-t-lg bg-background text-foreground resize-none text-sm min-h-[82px] max-h-[40vh] focus:outline-none placeholder:text-muted-foreground/50',
+        'flex-1 bg-transparent text-background resize-none text-[15px] leading-relaxed min-h-[80px] max-h-[200px]',
+        // Remove all focus styles
+        'focus:outline-none focus:ring-0 focus:border-transparent',
+        'focus-visible:outline-none focus-visible:ring-0',
+        // Remove any browser default outlines
+        'outline-none border-none',
+        // Placeholder styling
+        'placeholder:text-neutral-500 dark:placeholder:text-neutral-400',
+        // Custom scrollbar for textarea
+        '[&::-webkit-scrollbar]:w-2',
+        '[&::-webkit-scrollbar-track]:bg-transparent',
+        '[&::-webkit-scrollbar-thumb]:bg-neutral-300/50',
+        '[&::-webkit-scrollbar-thumb]:dark:bg-neutral-600/50',
+        '[&::-webkit-scrollbar-thumb]:rounded-full',
+        '[&::-webkit-scrollbar-thumb:hover]:bg-neutral-400/70',
+        '[&::-webkit-scrollbar-thumb:hover]:dark:bg-neutral-500/70',
+        'scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-300/50 dark:scrollbar-thumb-neutral-600/50',
         className
       )}
       disabled={isPending}
@@ -306,33 +343,72 @@ const MessageInputSubmitButton = React.forwardRef<
 >(({ className, children, ...props }, ref) => {
   const { isPending } = useMessageInputContext();
   const { cancel } = useTamboThread();
+  const [isSpeaking, setIsSpeaking] = React.useState(false);
+
+  // Track TTS state using audio manager
+  React.useEffect(() => {
+    const updateSpeakingState = () => {
+      setIsSpeaking(audioManager.isPlaying());
+    };
+
+    // Subscribe to audio manager updates
+    const unsubscribe = audioManager.subscribe(updateSpeakingState);
+
+    // Also listen to custom events for backward compatibility
+    const handleTTSStarted = () => {
+      setIsSpeaking(true);
+    };
+
+    const handleTTSEnded = () => {
+      // Check with audio manager to be sure
+      setIsSpeaking(audioManager.isPlaying());
+    };
+
+    window.addEventListener('tambo:ttsStarted', handleTTSStarted);
+    window.addEventListener('tambo:ttsEnded', handleTTSEnded);
+
+    // Initial state
+    updateSpeakingState();
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('tambo:ttsStarted', handleTTSStarted);
+      window.removeEventListener('tambo:ttsEnded', handleTTSEnded);
+    };
+  }, []);
 
   const handleCancel = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    // Stop all TTS when cancel button is clicked
+    window.dispatchEvent(new CustomEvent('tambo:stopAllTTS'));
     cancel();
   };
 
+  const showCancelButton = isPending || isSpeaking;
+
   const buttonClasses = cn(
-    'w-10 h-10 bg-black/80 text-white rounded-lg hover:bg-black/70 disabled:opacity-50 flex items-center justify-center cursor-pointer',
+    'w-9 h-9 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 rounded-md hover:bg-neutral-800 dark:hover:bg-neutral-200 disabled:opacity-50 flex items-center justify-center cursor-pointer transition-colors duration-200',
     className
   );
 
   return (
     <button
       ref={ref}
-      type={isPending ? 'button' : 'submit'}
-      onClick={isPending ? handleCancel : undefined}
+      type={showCancelButton ? 'button' : 'submit'}
+      onClick={showCancelButton ? handleCancel : undefined}
       className={buttonClasses}
-      aria-label={isPending ? 'Cancel message' : 'Send message'}
-      data-slot={isPending ? 'message-input-cancel' : 'message-input-submit'}
+      aria-label={showCancelButton ? 'Cancel message' : 'Send message'}
+      data-slot={
+        showCancelButton ? 'message-input-cancel' : 'message-input-submit'
+      }
       {...props}
     >
       {children ??
-        (isPending ? (
+        (showCancelButton ? (
           <Square className="w-4 h-4" fill="currentColor" />
         ) : (
-          <ArrowUp className="w-5 h-5" />
+          <ArrowUp className="w-4 h-4" />
         ))}
     </button>
   );
@@ -371,7 +447,7 @@ const MessageInputError = React.forwardRef<
   return (
     <p
       ref={ref}
-      className={cn('text-sm text-[hsl(var(--destructive))] mt-2', className)}
+      className={cn('text-sm text-red-600 dark:text-red-400 mt-2', className)}
       data-slot="message-input-error"
       {...props}
     >
@@ -403,7 +479,7 @@ const MessageInputToolbar = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn('flex justify-end items-center gap-2 mt-2 p-1', className)}
+      className={cn('flex justify-end items-center gap-2 mt-1', className)}
       data-slot="message-input-toolbar"
       {...props}
     >
@@ -428,21 +504,27 @@ MessageInputToolbar.displayName = 'MessageInput.Toolbar';
  * </MessageInput>
  * ```
  */
+interface MessageInputSpeechButtonProps
+  extends React.HTMLAttributes<HTMLDivElement> {
+  /** Custom className for the speech button */
+  buttonClassName?: string;
+  /** Callback when recording state changes */
+  onRecordingChange?: (recording: boolean) => void;
+}
+
 const MessageInputSpeechButton = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  const { setValue, handleSubmit, isPending } = useMessageInputContext();
+  MessageInputSpeechButtonProps
+>(({ className, buttonClassName, onRecordingChange, ...props }, ref) => {
+  const { setValue, isPending, setShouldAutoSubmit } = useMessageInputContext();
 
   const handleTranscript = (transcript: string) => {
     setValue(transcript);
   };
 
   const handleVoiceSubmit = () => {
-    // Create a synthetic form event for submission
-    const form = document.createElement('form');
-    const event = new Event('submit', { bubbles: true, cancelable: true });
-    handleSubmit(event as unknown as React.FormEvent);
+    // Set the flag to trigger submission after value updates
+    setShouldAutoSubmit(true);
   };
 
   return (
@@ -451,6 +533,8 @@ const MessageInputSpeechButton = React.forwardRef<
         onTranscript={handleTranscript}
         onSubmit={handleVoiceSubmit}
         disabled={isPending}
+        className={buttonClassName}
+        onRecordingChange={onRecordingChange}
       />
     </div>
   );

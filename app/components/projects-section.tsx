@@ -1,4 +1,7 @@
+'use client';
+
 import { cn } from 'lib/utils';
+import { z } from 'zod';
 
 export interface Project {
   title: string;
@@ -8,11 +11,32 @@ export interface Project {
   featured?: boolean;
 }
 
-export interface ProjectsSectionProps {
-  title?: string;
-  projects: Project[];
-  className?: string;
-}
+export const ProjectsSectionSchema = z.object({
+  title: z.string().optional().describe('Section title (default: "Projects")'),
+  projects: z
+    .array(
+      z.object({
+        title: z.string().describe('Project name'),
+        description: z.string().describe('Project description'),
+        url: z.string().describe('Project URL/link'),
+        technologies: z
+          .array(z.string())
+          .optional()
+          .describe('Technologies used in the project'),
+        featured: z
+          .boolean()
+          .optional()
+          .describe('Whether this is a featured project'),
+      })
+    )
+    .describe('Array of projects to display'),
+  className: z
+    .string()
+    .optional()
+    .describe('Optional CSS class name for styling'),
+});
+
+export type ProjectsSectionProps = z.infer<typeof ProjectsSectionSchema>;
 
 function Badge({
   href,
@@ -44,9 +68,13 @@ function Badge({
 
 export function ProjectsSection({
   title = 'Projects',
-  projects,
+  projects = [],
   className,
 }: ProjectsSectionProps) {
+  if (!projects || projects.length === 0) {
+    return null;
+  }
+
   return (
     <div className={cn('mb-16', className)}>
       <h2 className="font-normal mb-4 text-neutral-500 dark:text-neutral-500 uppercase tracking-wide">

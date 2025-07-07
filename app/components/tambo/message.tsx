@@ -1,17 +1,17 @@
 'use client';
 
-import { createMarkdownComponents } from 'app/components/tambo/markdown-components';
-import { checkHasContent, getSafeContent } from 'lib/thread-hooks';
-import { cn } from 'lib/utils';
 import type { TamboThreadMessage } from '@tambo-ai/react';
 import { useTambo } from '@tambo-ai/react';
 import type TamboAI from '@tambo-ai/typescript-sdk';
+import { createMarkdownComponents } from 'app/components/tambo/markdown-components';
 import { cva, type VariantProps } from 'class-variance-authority';
-import stringify from 'json-stringify-pretty-compact';
+import { checkHasContent, getSafeContent } from 'lib/thread-hooks';
+import { cn } from 'lib/utils';
 import { Check, ChevronDown, ExternalLink, Loader2, X } from 'lucide-react';
 import * as React from 'react';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { TextToSpeechStream } from '../text-to-speech/text-to-speech-stream';
 
 /**
  * CSS variants for the message container
@@ -182,7 +182,8 @@ const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
     { className, children, content: contentProp, markdown = true, ...props },
     ref
   ) => {
-    const { message, isLoading } = useMessageContext();
+    const { message, isLoading, role } = useMessageContext();
+    const { thread } = useTambo();
     const contentToRender = children ?? contentProp ?? message.content;
 
     const safeContent = React.useMemo(
@@ -196,11 +197,104 @@ const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
 
     const showLoading = isLoading && !hasContent;
 
+    // Extract text content for TTS
+    const textContent = React.useMemo(() => {
+      if (typeof safeContent === 'string') {
+        // Remove markdown formatting for cleaner speech
+        return safeContent
+          .replace(/[#*`_~\[\]()]/g, '') // Remove markdown symbols
+          .replace(/\n+/g, ' ') // Replace newlines with spaces
+          .trim();
+      }
+      return '';
+    }, [safeContent]);
+
+    // Check if this is the latest assistant message
+    const isLatestAssistantMessage = React.useMemo(() => {
+      if (!thread?.messages || role !== 'assistant') return false;
+
+      // Find the last assistant message in the thread
+      const assistantMessages = thread.messages.filter(
+        (m: TamboThreadMessage) => m.role === 'assistant'
+      );
+
+      if (assistantMessages.length === 0) return false;
+
+      const lastAssistantMessage =
+        assistantMessages[assistantMessages.length - 1];
+      return lastAssistantMessage.id === message.id;
+    }, [thread?.messages, role, message.id]);
+
+    // Track if this message existed when component mounted
+    const messageExistedOnMount = React.useRef(isLatestAssistantMessage);
+
+    // Track if we've seen this message complete before
+    const hasCompletedBefore = React.useRef(!isLoading);
+
+    // Only show TTS for the latest assistant message
+    const [showTTS, setShowTTS] = React.useState(false);
+
+    React.useEffect(() => {
+      // Only play TTS for messages that:
+      // 1. Are the latest assistant message
+      // 2. Have text content
+      // 3. Are not loading
+      // 4. Were NOT already complete when we first saw them (prevents playing old messages)
+      if (isLatestAssistantMessage && textContent && !isLoading) {
+        // If this message was already complete when we mounted, don't play it
+        if (messageExistedOnMount.current && hasCompletedBefore.current) {
+          setShowTTS(false);
+          return;
+        }
+
+        // Stop all other TTS when a new message starts streaming
+        window.dispatchEvent(new CustomEvent('tambo:stopAllTTS'));
+
+        // Mark that we've seen this message complete
+        hasCompletedBefore.current = true;
+
+        // Delay showing TTS to ensure it's a new message
+        const timer = setTimeout(() => setShowTTS(true), 100);
+        return () => clearTimeout(timer);
+      } else {
+        setShowTTS(false);
+      }
+    }, [isLatestAssistantMessage, textContent, isLoading]);
+
     return (
       <div
         ref={ref}
         className={cn(
-          'relative block rounded-3xl px-4 py-2 text-[15px] leading-relaxed transition-all duration-200 font-medium max-w-full [&_p]:py-1 [&_ul]:py-4 [&_ol]:py-4 [&_li]:list-item',
+          'relative block rounded-lg px-4 py-3 text-[15px] leading-relaxed transition-all duration-200 font-normal max-w-full',
+          // Message bubble base styling
+          'border shadow-sm',
+          // User message styling
+          role === 'user' && [
+            'bg-white dark:bg-neutral-900',
+            'border-neutral-200 dark:border-neutral-800',
+            'shadow-neutral-100 dark:shadow-neutral-900/30',
+            'hover:shadow-md hover:border-neutral-300 dark:hover:border-neutral-700',
+          ],
+          // Assistant message styling
+          role === 'assistant' && [
+            'bg-neutral-50 dark:bg-neutral-800/50',
+            'border-neutral-200 dark:border-neutral-700',
+            'shadow-neutral-100 dark:shadow-neutral-900/30',
+          ],
+          // Markdown content styling
+          '[&_p]:mb-2 [&_p:last-child]:mb-0',
+          '[&_ul]:mb-2 [&_ul]:ml-4',
+          '[&_ol]:mb-2 [&_ol]:ml-4',
+          '[&_li]:list-item [&_li]:mb-1',
+          '[&_code]:bg-neutral-100 [&_code]:dark:bg-neutral-800',
+          '[&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded-md [&_code]:text-sm',
+          '[&_pre]:bg-neutral-100 [&_pre]:dark:bg-neutral-800',
+          '[&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto',
+          '[&_pre_code]:bg-transparent [&_pre_code]:p-0',
+          '[&_blockquote]:border-l-4 [&_blockquote]:border-neutral-300',
+          '[&_blockquote]:dark:border-neutral-600 [&_blockquote]:pl-4',
+          '[&_blockquote]:italic [&_blockquote]:text-neutral-600',
+          '[&_blockquote]:dark:text-neutral-400',
           className
         )}
         data-slot="message-content"
@@ -208,33 +302,52 @@ const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
       >
         {showLoading ? (
           <div
-            className="flex items-center justify-start h-4 py-1"
+            className="flex items-center justify-start h-4"
             data-slot="message-loading-indicator"
           >
-            <LoadingIndicator />
+            <LoadingIndicator className="text-neutral-500 dark:text-neutral-400" />
           </div>
         ) : (
-          <div
-            className={cn('break-words', !markdown && 'whitespace-pre-wrap')}
-            data-slot="message-content-text"
-          >
-            {!contentToRender ? (
-              <span className="text-muted-foreground italic">
-                Empty message
-              </span>
-            ) : React.isValidElement(contentToRender) ? (
-              contentToRender
-            ) : markdown ? (
-              <ReactMarkdown components={createMarkdownComponents()}>
-                {typeof safeContent === 'string' ? safeContent : ''}
-              </ReactMarkdown>
-            ) : (
-              safeContent
-            )}
-            {message.isCancelled && (
-              <span className="text-muted-foreground text-xs">cancelled</span>
-            )}
-          </div>
+          <>
+            <div
+              className={cn('break-words', !markdown && 'whitespace-pre-wrap')}
+              data-slot="message-content-text"
+            >
+              {!contentToRender ? (
+                <span className="text-neutral-500 dark:text-neutral-400 italic">
+                  Empty message
+                </span>
+              ) : React.isValidElement(contentToRender) ? (
+                contentToRender
+              ) : markdown ? (
+                <ReactMarkdown components={createMarkdownComponents()}>
+                  {typeof safeContent === 'string' ? safeContent : ''}
+                </ReactMarkdown>
+              ) : (
+                safeContent
+              )}
+              {message.isCancelled && (
+                <span className="text-neutral-500 dark:text-neutral-400 text-xs ml-2">
+                  (cancelled)
+                </span>
+              )}
+            </div>
+
+            {/* Add TTS for assistant messages */}
+            {showTTS &&
+              role === 'assistant' &&
+              textContent &&
+              !message.isCancelled && (
+                <div className="flex items-center">
+                  <TextToSpeechStream
+                    text={textContent}
+                    autoPlay={true}
+                    showControls={true}
+                    className="text-xs"
+                  />
+                </div>
+              )}
+          </>
         )}
       </div>
     );
@@ -308,80 +421,133 @@ const ToolcallInfo = React.forwardRef<HTMLDivElement, ToolcallInfoProps>(
 
     const toolStatusMessage = getToolStatusMessage(message, isLoading);
 
+    // Shared scrollbar classes for consistency
+    const scrollbarClasses = cn(
+      '[&::-webkit-scrollbar]:w-1.5',
+      '[&::-webkit-scrollbar]:h-1.5',
+      '[&::-webkit-scrollbar-track]:bg-transparent',
+      '[&::-webkit-scrollbar-thumb]:bg-neutral-300/50',
+      '[&::-webkit-scrollbar-thumb]:dark:bg-neutral-600/50',
+      '[&::-webkit-scrollbar-thumb]:rounded-full',
+      '[&::-webkit-scrollbar-thumb:hover]:bg-neutral-400/70',
+      '[&::-webkit-scrollbar-thumb:hover]:dark:bg-neutral-500/70',
+      '[&::-webkit-scrollbar-corner]:bg-transparent',
+      'scrollbar-thin',
+      'scrollbar-track-transparent',
+      'scrollbar-thumb-neutral-300/50',
+      'dark:scrollbar-thumb-neutral-600/50'
+    );
+
+    // Format the response content as JSON when needed
+    const formatResponseContent = (content: any) => {
+      if (!content) return 'Empty response';
+
+      const safeContent = getSafeContent(content);
+
+      // If it's already a string, check if it's JSON
+      if (typeof safeContent === 'string') {
+        try {
+          // Try to parse and re-stringify for consistent formatting
+          const parsed = JSON.parse(safeContent);
+          return JSON.stringify(parsed, null, 2);
+        } catch {
+          // If not JSON, return as-is
+          return safeContent;
+        }
+      }
+
+      // For objects/arrays, stringify them
+      return JSON.stringify(safeContent, null, 2);
+    };
+
     return (
       <div
         ref={ref}
         className={cn(
-          'flex flex-col items-start text-xs opacity-50 pt-2',
+          'flex flex-col items-start text-xs mt-2 max-w-full',
           className
         )}
         data-slot="toolcall-info"
         {...props}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 max-w-full">
           <button
             type="button"
             aria-expanded={isExpanded}
             aria-controls={toolDetailsId}
             onClick={() => setIsExpanded(!isExpanded)}
             className={cn(
-              'flex items-center gap-1 cursor-pointer hover:bg-gray-100 rounded-md p-1 select-none w-fit'
+              'flex items-center gap-1.5 cursor-pointer',
+              'text-neutral-500 dark:text-neutral-400',
+              'hover:text-neutral-700 dark:hover:text-neutral-200',
+              'transition-colors duration-200'
             )}
           >
             {hasToolError ? (
-              <X className="w-3 h-3 text-bold text-red-500" />
+              <X className="w-3 h-3 text-red-500" />
             ) : isLoading ? (
-              <Loader2 className="w-3 h-3 text-muted-foreground text-bold animate-spin" />
+              <Loader2 className="w-3 h-3 animate-spin" />
             ) : (
-              <Check className="w-3 h-3 text-bold text-green-500" />
+              <Check className="w-3 h-3 text-green-600 dark:text-green-500" />
             )}
-            <span>{toolStatusMessage}</span>
+            <span className="font-medium">{toolStatusMessage}</span>
             <ChevronDown
               className={cn(
                 'w-3 h-3 transition-transform duration-200',
-                !isExpanded && '-rotate-90'
+                isExpanded && 'rotate-180'
               )}
             />
           </button>
           <div
             id={toolDetailsId}
             className={cn(
-              'flex flex-col gap-1 pl-4 overflow-hidden transition-[max-height,opacity] duration-300',
+              'transition-[max-height,opacity] duration-200',
+              'max-w-full overflow-hidden',
               isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
             )}
           >
-            <span className="whitespace-pre-wrap">
-              tool: {toolCallRequest?.toolName}
-            </span>
-            <span className="whitespace-pre-wrap">
-              parameters:{'\n'}
-              {stringify(keyifyParameters(toolCallRequest?.parameters))}
-            </span>
-            {associatedToolResponse && (
-              <>
-                <span className="whitespace-pre-wrap font-medium">result:</span>
-                <div className="whitespace-pre-wrap">
-                  {!associatedToolResponse.content ? (
-                    <span className="text-muted-foreground italic">
-                      Empty response
-                    </span>
-                  ) : React.isValidElement(associatedToolResponse.content) ? (
-                    associatedToolResponse.content
-                  ) : markdown ? (
-                    <ReactMarkdown components={createMarkdownComponents()}>
-                      {typeof getSafeContent(associatedToolResponse.content) ===
-                      'string'
-                        ? (getSafeContent(
-                            associatedToolResponse.content
-                          ) as string)
-                        : ''}
-                    </ReactMarkdown>
-                  ) : (
-                    getSafeContent(associatedToolResponse.content)
-                  )}
+            <div
+              className={cn(
+                'overflow-y-auto max-h-80 pr-1 pl-4',
+                scrollbarClasses
+              )}
+            >
+              <div className="space-y-3 text-neutral-600 dark:text-neutral-400">
+                <div>
+                  <span className="font-medium">tool:</span>{' '}
+                  <span className="font-mono">{toolCallRequest?.toolName}</span>
                 </div>
-              </>
-            )}
+
+                <div className="space-y-1">
+                  <span className="font-medium">parameters:</span>
+                  <div className={cn('overflow-x-auto', scrollbarClasses)}>
+                    <pre className="p-2 bg-neutral-100 dark:bg-neutral-800/50 rounded text-[11px] font-mono whitespace-pre">
+                      {JSON.stringify(
+                        keyifyParameters(toolCallRequest?.parameters),
+                        null,
+                        2
+                      )}
+                    </pre>
+                  </div>
+                </div>
+
+                {associatedToolResponse && (
+                  <div className="space-y-1">
+                    <span className="font-medium">result:</span>
+                    <div
+                      className={cn(
+                        'bg-neutral-100 dark:bg-neutral-800/50 rounded p-2 overflow-x-auto',
+                        scrollbarClasses
+                      )}
+                    >
+                      <pre className="text-[11px] font-mono whitespace-pre">
+                        {formatResponseContent(associatedToolResponse.content)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
