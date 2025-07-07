@@ -15,6 +15,12 @@ import {
   ProjectsSection,
   ProjectsSectionSchema,
 } from '../app/components/projects-section';
+import {
+  SocialMediaCard,
+  SocialMediaCardSchema,
+  SocialMediaGrid,
+  SocialMediaGridSchema,
+} from '../app/components/social-media-card';
 import { blogTools } from './tools/blog-tools';
 
 export const components: TamboComponent[] = [
@@ -74,6 +80,34 @@ Example usage:
 Each card links to the full blog post at /blog/[slug].`,
     component: BlogCard,
     propsSchema: BlogCardSchema,
+  },
+  {
+    name: 'SocialMediaCard',
+    description: `A component that displays a single social media profile card with platform-specific styling and icons. Use this to show individual social media profiles when users ask about specific platforms or contact information.
+
+Akhilesh's social media profiles:
+- Twitter: @heyavi_ (https://twitter.com/heyavi_)
+- LinkedIn: akhileshrangani (https://www.linkedin.com/in/akhileshrangani/)
+- GitHub: akhileshrangani4 (https://github.com/akhileshrangani4)
+- Email: akhileshrangani4@gmail.com (mailto:akhileshrangani4@gmail.com)
+
+Each card shows the platform icon, username, and can include an optional description. Cards have hover effects with platform-specific colors.`,
+    component: SocialMediaCard,
+    propsSchema: SocialMediaCardSchema,
+  },
+  {
+    name: 'SocialMediaGrid',
+    description: `A grid component that displays multiple social media profile cards. Use this when users ask about Akhilesh's social media presence, contact information, or how to connect with him.
+
+This is perfect for showing all social media profiles at once:
+- Twitter: @heyavi_ (https://twitter.com/heyavi_) - "Follow me for tech insights and updates"
+- LinkedIn: akhileshrangani (https://www.linkedin.com/in/akhileshrangani/) - "Connect for professional opportunities"
+- GitHub: akhileshrangani4 (https://github.com/akhileshrangani4) - "Check out my open source projects"
+- Email: akhileshrangani4@gmail.com - "Reach out for collaborations"
+
+The grid can display 1-4 columns and automatically adjusts for mobile responsiveness.`,
+    component: SocialMediaGrid,
+    propsSchema: SocialMediaGridSchema,
   },
 ];
 
