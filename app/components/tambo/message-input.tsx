@@ -5,7 +5,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from 'lib/utils';
 import { ArrowUp, Square } from 'lucide-react';
 import * as React from 'react';
-import { SpeechToTextStream } from './speech-to-text-stream';
+import { SpeechToTextStream } from '../speech-to-text/speech-to-text-stream';
 
 /**
  * CSS variants for the message input container
@@ -52,6 +52,7 @@ const messageInputVariants = cva('w-full', {
  * @property {HTMLTextAreaElement|null} textareaRef - Reference to the textarea element
  * @property {string | null} submitError - Error from the submission
  * @property {function} setSubmitError - Function to set the submission error
+ * @property {function} setShouldAutoSubmit - Function to set the auto-submit flag
  */
 interface MessageInputContextValue {
   value: string;
@@ -67,6 +68,7 @@ interface MessageInputContextValue {
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   submitError: string | null;
   setSubmitError: React.Dispatch<React.SetStateAction<string | null>>;
+  setShouldAutoSubmit: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 /**
@@ -127,6 +129,7 @@ const MessageInput = React.forwardRef<HTMLFormElement, MessageInputProps>(
     const [displayValue, setDisplayValue] = React.useState('');
     const [submitError, setSubmitError] = React.useState<string | null>(null);
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+    const [shouldAutoSubmit, setShouldAutoSubmit] = React.useState(false);
 
     React.useEffect(() => {
       setDisplayValue(value);
@@ -134,6 +137,22 @@ const MessageInput = React.forwardRef<HTMLFormElement, MessageInputProps>(
         textareaRef.current.focus();
       }
     }, [value]);
+
+    // Handle auto-submission when value is set and flag is true
+    React.useEffect(() => {
+      if (shouldAutoSubmit && value.trim()) {
+        setShouldAutoSubmit(false);
+        // Create and dispatch a synthetic submit event
+        const form = textareaRef.current?.form;
+        if (form) {
+          const submitEvent = new Event('submit', {
+            bubbles: true,
+            cancelable: true,
+          });
+          form.dispatchEvent(submitEvent);
+        }
+      }
+    }, [value, shouldAutoSubmit]);
 
     const handleSubmit = React.useCallback(
       async (e: React.FormEvent) => {
@@ -179,6 +198,7 @@ const MessageInput = React.forwardRef<HTMLFormElement, MessageInputProps>(
         textareaRef,
         submitError,
         setSubmitError,
+        setShouldAutoSubmit,
       }),
       [
         displayValue,
@@ -432,17 +452,15 @@ const MessageInputSpeechButton = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
-  const { setValue, handleSubmit, isPending } = useMessageInputContext();
+  const { setValue, isPending, setShouldAutoSubmit } = useMessageInputContext();
 
   const handleTranscript = (transcript: string) => {
     setValue(transcript);
   };
 
   const handleVoiceSubmit = () => {
-    // Create a synthetic form event for submission
-    const form = document.createElement('form');
-    const event = new Event('submit', { bubbles: true, cancelable: true });
-    handleSubmit(event as unknown as React.FormEvent);
+    // Set the flag to trigger submission after value updates
+    setShouldAutoSubmit(true);
   };
 
   return (
