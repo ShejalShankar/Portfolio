@@ -288,7 +288,7 @@ summary: 'Brief description of your post'
 
 ### AI Assistant Knowledge
 
-# Note: These are not used in project anywhere but are used in tambo system instructions on tambo dashboard.
+#### Note: These are not used in project anywhere but are used in tambo system instructions on tambo dashboard.
 
 - Update `public/speaking_agent_data.json` with personal information
 - Modify `lib/tambo_system_prompt.ts` to customize AI personality
