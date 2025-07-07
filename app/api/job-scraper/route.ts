@@ -1,38 +1,33 @@
+import FirecrawlApp from '@mendable/firecrawl-js';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { z } from 'zod';
 import speakingAgentData from '../../../public/speaking_agent_data.json';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const firecrawl = new FirecrawlApp({
+  apiKey: process.env.FIRECRAWL_API_KEY,
+});
+
 export const runtime = 'nodejs';
 
-// Helper function to extract text content from HTML
-function extractTextContent(html: string): string {
-  // Remove script and style elements
-  let text = html.replace(
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-    ''
-  );
-  text = text.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
-
-  // Remove HTML tags
-  text = text.replace(/<[^>]+>/g, ' ');
-
-  // Decode HTML entities
-  text = text.replace(/&nbsp;/g, ' ');
-  text = text.replace(/&amp;/g, '&');
-  text = text.replace(/&lt;/g, '<');
-  text = text.replace(/&gt;/g, '>');
-  text = text.replace(/&quot;/g, '"');
-  text = text.replace(/&#39;/g, "'");
-
-  // Clean up whitespace
-  text = text.replace(/\s+/g, ' ').trim();
-
-  return text;
-}
+// Define schema for job posting extraction
+const JobPostingSchema = z.object({
+  jobTitle: z.string().optional(),
+  company: z.string().optional(),
+  location: z.string().optional(),
+  experienceLevel: z.string().optional(),
+  requiredSkills: z.array(z.string()).optional(),
+  keyResponsibilities: z.array(z.string()).optional(),
+  salary: z.string().optional(),
+  benefits: z.array(z.string()).optional(),
+  applicationDeadline: z.string().optional(),
+  jobType: z.string().optional(), // full-time, part-time, contract, etc.
+  remoteOptions: z.string().optional(),
+});
 
 // Helper function to detect if URL is likely a job posting
 function isLikelyJobPosting(url: string, content: string): boolean {
@@ -109,76 +104,79 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch the webpage
-    const response = await fetch(validatedUrl.toString(), {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate',
-        Connection: 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-      },
+    console.log('Scraping URL with Firecrawl:', validatedUrl.toString());
+
+    // First, do a quick scrape to check if it's a job posting
+    const initialScrape = await firecrawl.scrapeUrl(validatedUrl.toString(), {
+      formats: ['markdown'],
+      onlyMainContent: true, // Focus on main content
+      timeout: 30000, // 30 second timeout
     });
 
-    if (!response.ok) {
+    if (!initialScrape.success || !initialScrape.markdown) {
       return NextResponse.json(
-        { error: `Failed to fetch webpage: ${response.statusText}` },
-        { status: response.status }
+        { error: 'Failed to scrape webpage' },
+        { status: 500 }
       );
     }
 
-    const html = await response.text();
-    const textContent = extractTextContent(html);
+    const isJobPosting = isLikelyJobPosting(url, initialScrape.markdown);
 
-    // Limit text content to avoid token limits
-    const maxLength = 8000;
-    const truncatedContent =
-      textContent.length > maxLength
-        ? textContent.substring(0, maxLength) + '...'
-        : textContent;
+    if (isJobPosting) {
+      // If it's a job posting, scrape again with structured data extraction
+      const jobScrape = await firecrawl.scrapeUrl(validatedUrl.toString(), {
+        formats: ['markdown', 'json'],
+        jsonOptions: {
+          schema: JobPostingSchema,
+        },
+        onlyMainContent: false,
+        timeout: 30000,
+      });
 
-    // Check if it's likely a job posting
-    const isJobPosting = isLikelyJobPosting(url, textContent);
+      if (!jobScrape.success) {
+        return NextResponse.json(
+          { error: 'Failed to extract job posting data' },
+          { status: 500 }
+        );
+      }
 
-    // Prepare Akhilesh's profile for matching
-    const akhileshProfile = {
-      skills: [
-        ...speakingAgentData.techStack.Languages,
-        ...speakingAgentData.techStack.Frameworks,
-        ...speakingAgentData.techStack.Tools,
-        ...speakingAgentData.techStack.AI,
-        ...speakingAgentData.techStack.Other,
-      ].map(skill => skill.toLowerCase()),
-      experience: speakingAgentData.experience,
-      projects: speakingAgentData.projects,
-      currentRoles: speakingAgentData.current,
-    };
+      // Prepare Akhilesh's profile for matching
+      const akhileshProfile = {
+        skills: [
+          ...speakingAgentData.techStack.Languages,
+          ...speakingAgentData.techStack.Frameworks,
+          ...speakingAgentData.techStack.Tools,
+          ...speakingAgentData.techStack.AI,
+          ...speakingAgentData.techStack.Other,
+        ].map(skill => skill.toLowerCase()),
+        experience: speakingAgentData.experience,
+        projects: speakingAgentData.projects,
+        currentRoles: speakingAgentData.current,
+      };
 
-    // Use GPT to analyze with specific matching focus
-    const systemPrompt = isJobPosting
-      ? `You are an expert at analyzing job postings and matching them to Akhilesh's profile.
+      // Use GPT to analyze the match with enhanced context
+      const systemPrompt = `You are an expert at analyzing job postings and matching them to Akhilesh's profile.
          
          Akhilesh's Profile:
          - Skills: ${JSON.stringify(akhileshProfile.skills)}
          - Current Roles: ${JSON.stringify(akhileshProfile.currentRoles)}
-         - Key Projects: ${speakingAgentData.projects.map(p => p.name).join(', ')}
+         - Key Projects: ${JSON.stringify(akhileshProfile.projects)}
+         - Experience: ${JSON.stringify(akhileshProfile.experience)}
+         
+         You have access to:
+         1. The structured job data extracted by Firecrawl
+         2. The full markdown content of the job posting
          
          Analyze the job posting and provide:
-         1. Job title and company
-         2. Required skills (list all technical skills mentioned)
-         3. Experience level needed
-         4. Key responsibilities
-         5. Location/remote options
-         6. Specific matching points between the job and Akhilesh's experience
-         7. Projects that demonstrate relevant experience
-         8. A match percentage (0-100) based on:
+         1. A comprehensive match analysis
+         2. Specific matching points between the job and Akhilesh's experience
+         3. Projects that demonstrate relevant experience
+         4. A match percentage (0-100) based on:
             - Skill overlap (40%)
             - Experience relevance (30%)
             - Project demonstrations (20%)
             - Other factors like location, culture fit (10%)
+         5. Talking points for an interview or application
          
          Be specific about which of Akhilesh's projects and experiences match the requirements.
          
@@ -195,62 +193,87 @@ export async function POST(request: NextRequest) {
            "relevantExperience": ["specific", "experiences", "that", "match"],
            "matchScore": number,
            "summary": "brief summary",
-           "talkingPoints": ["specific", "points", "to", "mention", "in", "conversation"]
-         }`
-      : `Analyze this webpage and provide a brief summary of its content.`;
+           "talkingPoints": ["specific", "points", "to", "mention", "in", "conversation"],
+           "missingSkills": ["skills", "not", "in", "profile"],
+           "recommendations": ["suggestions", "for", "application"]
+         }`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        {
-          role: 'user',
-          content: `Please analyze this webpage content:\n\nURL: ${url}\n\nContent:\n${truncatedContent}`,
-        },
-      ],
-      temperature: 0.3,
-      max_tokens: 1500,
-      response_format: isJobPosting ? { type: 'json_object' } : undefined,
-    });
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+          {
+            role: 'user',
+            content: `Please analyze this job posting:
+            
+            Structured Data:
+            ${JSON.stringify(jobScrape.json, null, 2)}
+            
+            Full Content:
+            ${jobScrape.markdown}`,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 2000,
+        response_format: { type: 'json_object' },
+      });
 
-    const analysisContent = completion.choices[0]?.message?.content || '{}';
+      const analysis = JSON.parse(
+        completion.choices[0]?.message?.content || '{}'
+      );
 
-    if (isJobPosting) {
-      try {
-        const analysis = JSON.parse(analysisContent);
-
-        return NextResponse.json({
-          url,
-          isJobPosting: true,
-          title:
-            html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] ||
-            analysis.jobTitle,
-          analysis,
-        });
-      } catch (e) {
-        // Fallback if JSON parsing fails
-        return NextResponse.json({
-          url,
-          isJobPosting: true,
-          summary: analysisContent,
-          title:
-            html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || 'Job Posting',
-        });
-      }
+      return NextResponse.json({
+        url,
+        isJobPosting: true,
+        title: jobScrape.metadata?.title || analysis.jobTitle || 'Job Posting',
+        structuredData: jobScrape.json,
+        analysis,
+        metadata: jobScrape.metadata,
+      });
     } else {
+      // For non-job pages, return a simple summary
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Analyze this webpage and provide a brief summary of its content.',
+          },
+          {
+            role: 'user',
+            content: `Please analyze this webpage content:\n\n${initialScrape.markdown}`,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 500,
+      });
+
       return NextResponse.json({
         url,
         isJobPosting: false,
-        summary: analysisContent,
-        title:
-          html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || 'No title found',
+        summary: completion.choices[0]?.message?.content,
+        title: initialScrape.metadata?.title || 'No title found',
+        metadata: initialScrape.metadata,
       });
     }
   } catch (error: any) {
-    console.error('Web scraping error:', error);
+    console.error('Job scraping error:', error);
+
+    // Provide more specific error messages
+    if (error.message?.includes('FIRECRAWL_API_KEY')) {
+      return NextResponse.json(
+        {
+          error: 'Firecrawl API key not configured',
+          details: 'Please add FIRECRAWL_API_KEY to your environment variables',
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       {
         error: 'Failed to scrape webpage',
