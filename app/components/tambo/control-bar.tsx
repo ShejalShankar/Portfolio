@@ -235,7 +235,7 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
               {!isMinimalMode && (
                 <div className="bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-lg p-3">
                   <MessageInput contextKey={contextKey}>
-                    <MessageInputTextarea />
+                    <MessageInputTextarea placeholder="Ask me anything or paste a job link..." />
                     <MessageInputToolbar>
                       <MessageInputSpeechButton />
                       <MessageInputSubmitButton />

@@ -149,9 +149,22 @@ export function CanvasSpace({ className }: CanvasSpaceProps) {
             </div>
           ) : (
             <div className="flex-1 flex items-center justify-center text-center p-6">
-              <div className="space-y-2">
-                <p className="text-gray-600 text-sm">
+              <div className="space-y-4 max-w-sm">
+                <p className="text-neutral-400 text-sm">
                   Talk with me by clicking on the mic icon.
+                </p>
+                {/* Sample examples */}
+                <div className="text-xs text-neutral-400 dark:text-neutral-500 space-y-1">
+                  <p className="italic">"What's your experience with React?"</p>
+                  <p className="italic">"Show me your recent projects"</p>
+                  <p className="italic">"Tell me about your work at tambo ai"</p>
+                  <p className="italic">"Check out this role: [job URL]"</p>
+                </div>
+
+                {/* Recruiter instructions */}
+                <p className="text-xs text-neutral-500 dark:text-neutral-500">
+                  Paste a job URL & I&apos;ll convince you why you should hire
+                  me.
                 </p>
               </div>
             </div>
