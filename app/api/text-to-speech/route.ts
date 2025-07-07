@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No text provided' }, { status: 400 });
     }
 
-    const apiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
+    const apiKey = process.env.ELEVENLABS_API_KEY;
 
     if (!apiKey) {
       console.error('ElevenLabs API key not configured');
