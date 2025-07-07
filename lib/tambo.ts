@@ -8,6 +8,12 @@ import {
   CurrentWorkSectionSchema,
 } from '../app/components/current-work-section';
 import {
+  GuestbookDisplay,
+  GuestbookDisplaySchema,
+  GuestbookHighlight,
+  GuestbookHighlightSchema,
+} from '../app/components/guestbook/guestbook-display';
+import {
   PhotoGridSection,
   PhotoGridSectionSchema,
 } from '../app/components/photo-grid-section';
@@ -16,12 +22,19 @@ import {
   ProjectsSectionSchema,
 } from '../app/components/projects-section';
 import {
+  ResumeButton,
+  ResumeButtonSchema,
+  ResumeOverview,
+  ResumeOverviewSchema,
+} from '../app/components/resume-card';
+import {
   SocialMediaCard,
   SocialMediaCardSchema,
   SocialMediaGrid,
   SocialMediaGridSchema,
 } from '../app/components/social-media-card';
 import { blogTools } from './tools/blog-tools';
+import { guestbookTools } from './tools/guestbook-tools';
 
 export const components: TamboComponent[] = [
   {
@@ -109,9 +122,77 @@ The grid can display 1-4 columns and automatically adjusts for mobile responsive
     component: SocialMediaGrid,
     propsSchema: SocialMediaGridSchema,
   },
+  {
+    name: 'GuestbookDisplay',
+    description: `A component that displays guestbook entries from visitors to Akhilesh's portfolio. Use this when users ask about the guestbook, visitor messages, or what people have written.
+
+Works perfectly with the fetchGuestbookEntries tool to show real guestbook data.
+
+Features:
+- Shows visitor names, messages, and timestamps
+- Can display a specific number of entries
+- Shows total count of entries
+- Handles empty states gracefully
+
+Use when users ask:
+- "Show me the guestbook"
+- "What have people written?"
+- "Display visitor messages"`,
+    component: GuestbookDisplay,
+    propsSchema: GuestbookDisplaySchema,
+  },
+  {
+    name: 'GuestbookHighlight',
+    description: `A component that highlights a single guestbook entry in a featured format. Use this to showcase a specific message or recent entry.
+
+Perfect for:
+- Highlighting the most recent guestbook entry
+- Featuring a particularly interesting message
+- Showing a sample of what the guestbook contains
+
+The component displays the message in a quote format with author attribution.`,
+    component: GuestbookHighlight,
+    propsSchema: GuestbookHighlightSchema,
+  },
+  {
+    name: 'ResumeOverview',
+    description: `A comprehensive resume overview card that displays Akhilesh's professional background and a button to view his full resume. Use this when users ask about his resume, CV, qualifications, or professional background.
+
+Features:
+- Current positions at tambo ai, GitWit.dev, and GWU
+- Key areas of expertise (full-stack development, AI/ML, cloud IDEs)
+- Education information (Master's at GWU)
+- Button to open the full resume in Google Drive
+
+Perfect for when users ask:
+- "Show me Akhilesh's resume"
+- "What are his qualifications?"
+- "Can I see his CV?"
+- "What's his professional background?"`,
+    component: ResumeOverview,
+    propsSchema: ResumeOverviewSchema,
+  },
+  {
+    name: 'ResumeButton',
+    description: `A standalone button component to open Akhilesh's resume. Use this when you need a simple, clean button to link to the resume without the full overview card.
+
+Available in three variants:
+- primary: Dark button with white text (default)
+- secondary: White button with border
+- ghost: Transparent with hover effect
+
+Sizes: sm, md (default), lg
+
+Perfect for:
+- Adding a resume link in other contexts
+- Providing quick access to the resume
+- When the full overview card is too much`,
+    component: ResumeButton,
+    propsSchema: ResumeButtonSchema,
+  },
 ];
 
 // Export tools separately so they can be registered in the provider
-export const tools = blogTools;
+export const tools = [...blogTools, ...guestbookTools];
 
 export default components;
