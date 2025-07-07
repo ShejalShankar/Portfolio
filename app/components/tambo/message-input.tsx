@@ -1,10 +1,11 @@
 'use client';
 
-import { cn } from 'lib/utils';
 import { useTamboThread, useTamboThreadInput } from '@tambo-ai/react';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from 'lib/utils';
 import { ArrowUp, Square } from 'lucide-react';
 import * as React from 'react';
+import { SpeechToTextStream } from './speech-to-text-stream';
 
 /**
  * CSS variants for the message input container
@@ -389,6 +390,7 @@ MessageInputError.displayName = 'MessageInput.Error';
  * <MessageInput>
  *   <MessageInput.Textarea />
  *   <MessageInput.Toolbar>
+ *     <MessageInput.SpeechButton />
  *     <MessageInput.SubmitButton />
  *   </MessageInput.Toolbar>
  * </MessageInput>
@@ -401,7 +403,7 @@ const MessageInputToolbar = React.forwardRef<
   return (
     <div
       ref={ref}
-      className={cn('flex justify-end mt-2 p-1', className)}
+      className={cn('flex justify-end items-center gap-2 mt-2 p-1', className)}
       data-slot="message-input-toolbar"
       {...props}
     >
@@ -411,10 +413,55 @@ const MessageInputToolbar = React.forwardRef<
 });
 MessageInputToolbar.displayName = 'MessageInput.Toolbar';
 
+/**
+ * Speech-to-text button component for voice input.
+ * Automatically connects to the context to handle transcription.
+ * @component MessageInput.SpeechButton
+ * @example
+ * ```tsx
+ * <MessageInput>
+ *   <MessageInput.Textarea />
+ *   <MessageInput.Toolbar>
+ *     <MessageInput.SpeechButton />
+ *     <MessageInput.SubmitButton />
+ *   </MessageInput.Toolbar>
+ * </MessageInput>
+ * ```
+ */
+const MessageInputSpeechButton = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => {
+  const { setValue, handleSubmit, isPending } = useMessageInputContext();
+
+  const handleTranscript = (transcript: string) => {
+    setValue(transcript);
+  };
+
+  const handleVoiceSubmit = () => {
+    // Create a synthetic form event for submission
+    const form = document.createElement('form');
+    const event = new Event('submit', { bubbles: true, cancelable: true });
+    handleSubmit(event as unknown as React.FormEvent);
+  };
+
+  return (
+    <div ref={ref} className={className} {...props}>
+      <SpeechToTextStream
+        onTranscript={handleTranscript}
+        onSubmit={handleVoiceSubmit}
+        disabled={isPending}
+      />
+    </div>
+  );
+});
+MessageInputSpeechButton.displayName = 'MessageInput.SpeechButton';
+
 // --- Exports ---
 export {
   MessageInput,
   MessageInputError,
+  MessageInputSpeechButton,
   MessageInputSubmitButton,
   MessageInputTextarea,
   MessageInputToolbar,

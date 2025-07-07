@@ -5,6 +5,7 @@ import type { messageVariants } from 'app/components/tambo/message';
 import {
   MessageInput,
   MessageInputError,
+  MessageInputSpeechButton,
   MessageInputSubmitButton,
   MessageInputTextarea,
   MessageInputToolbar,
@@ -124,6 +125,7 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
                 <MessageInput contextKey={contextKey}>
                   <MessageInputTextarea />
                   <MessageInputToolbar>
+                    <MessageInputSpeechButton />
                     <MessageInputSubmitButton />
                   </MessageInputToolbar>
                   <MessageInputError />
