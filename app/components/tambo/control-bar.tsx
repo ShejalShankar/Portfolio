@@ -1,5 +1,6 @@
 'use client';
 
+import { Mic } from 'lucide-react';
 import { useTambo } from '@tambo-ai/react';
 import type { messageVariants } from 'app/components/tambo/message';
 import {
@@ -17,10 +18,6 @@ import {
 } from 'app/components/tambo/thread-content';
 import type { VariantProps } from 'class-variance-authority';
 import { cn } from 'lib/utils';
-import Image from 'next/image';
-import hand from 'public/emojis/hand.svg';
-import microphone from 'public/emojis/microphone.svg';
-import robot from 'public/emojis/robot.svg';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 
@@ -146,17 +143,21 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
 
     return (
       <>
-        {/* Trigger Button */}
+        {/* Minimalist trigger button */}
         <button
           onClick={() => setOpen(true)}
-          aria-label="AI chat"
+          aria-label="Open chat"
           className={cn(
-            'fixed bottom-4 right-4 z-50',
-            'px-3 py-2',
-            'focus:outline-none focus:ring-0 focus:border-none outline-none border-none',
-            'active:outline-none active:ring-0 active:border-none',
+            'fixed bottom-6 right-6 z-50',
+            'w-12 h-12',
+            'bg-white dark:bg-neutral-900',
+            'border border-neutral-200 dark:border-neutral-800',
+            'rounded-sm',
+            'shadow-sm hover:shadow-md',
             'transition-all duration-200',
-            'relative'
+            'flex items-center justify-center',
+            'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100',
+            'animate-pulse-wave'
           )}
           style={{
             position: 'fixed',
@@ -178,23 +179,11 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
               transform: 'scale(2.5)',
             }}
           />
+          <Mic className="w-5 h-5" />
 
-          <span className="text-2xl animate-pulse-wave select-none flex items-center gap-2">
-            <Image src={robot} alt="robot" width={24} height={24} />
-            <Image
-              src={hand}
-              alt="hand"
-              width={24}
-              height={24}
-              className="hidden sm:inline"
-            />
-            <Image
-              src={microphone}
-              alt="microphone"
-              width={24}
-              height={24}
-              className="hidden sm:inline"
-            />
+          {/* Keyboard shortcut hint */}
+          <span className="absolute -top-8 right-0 text-xs text-neutral-400 dark:text-neutral-500 opacity-0 hover:opacity-100 transition-opacity whitespace-nowrap">
+            {isMac ? '⌘' : 'Ctrl'}+K
           </span>
         </button>
 
