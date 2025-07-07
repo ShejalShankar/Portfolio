@@ -12,6 +12,7 @@ import { Check, ChevronDown, ExternalLink, Loader2, X } from 'lucide-react';
 import * as React from 'react';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { TextToSpeechStream } from '../text-to-speech/text-to-speech-stream';
 
 /**
  * CSS variants for the message container
@@ -183,6 +184,7 @@ const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
     ref
   ) => {
     const { message, isLoading, role } = useMessageContext();
+    const { thread } = useTambo();
     const contentToRender = children ?? contentProp ?? message.content;
 
     const safeContent = React.useMemo(
@@ -195,6 +197,47 @@ const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
     );
 
     const showLoading = isLoading && !hasContent;
+
+    // Extract text content for TTS
+    const textContent = React.useMemo(() => {
+      if (typeof safeContent === 'string') {
+        // Remove markdown formatting for cleaner speech
+        return safeContent
+          .replace(/[#*`_~\[\]()]/g, '') // Remove markdown symbols
+          .replace(/\n+/g, ' ') // Replace newlines with spaces
+          .trim();
+      }
+      return '';
+    }, [safeContent]);
+
+    // Check if this is the latest assistant message
+    const isLatestAssistantMessage = React.useMemo(() => {
+      if (!thread?.messages || role !== 'assistant') return false;
+
+      // Find the last assistant message in the thread
+      const assistantMessages = thread.messages.filter(
+        (m: TamboThreadMessage) => m.role === 'assistant'
+      );
+
+      if (assistantMessages.length === 0) return false;
+
+      const lastAssistantMessage =
+        assistantMessages[assistantMessages.length - 1];
+      return lastAssistantMessage.id === message.id;
+    }, [thread?.messages, role, message.id]);
+
+    // Only show TTS for the latest assistant message
+    const [showTTS, setShowTTS] = React.useState(false);
+
+    React.useEffect(() => {
+      if (isLatestAssistantMessage && textContent && !isLoading) {
+        // Delay showing TTS to avoid playing old messages on page load
+        const timer = setTimeout(() => setShowTTS(true), 100);
+        return () => clearTimeout(timer);
+      } else {
+        setShowTTS(false);
+      }
+    }, [isLatestAssistantMessage, textContent, isLoading]);
 
     return (
       <div
@@ -243,29 +286,46 @@ const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
             <LoadingIndicator className="text-neutral-500 dark:text-neutral-400" />
           </div>
         ) : (
-          <div
-            className={cn('break-words', !markdown && 'whitespace-pre-wrap')}
-            data-slot="message-content-text"
-          >
-            {!contentToRender ? (
-              <span className="text-neutral-500 dark:text-neutral-400 italic">
-                Empty message
-              </span>
-            ) : React.isValidElement(contentToRender) ? (
-              contentToRender
-            ) : markdown ? (
-              <ReactMarkdown components={createMarkdownComponents()}>
-                {typeof safeContent === 'string' ? safeContent : ''}
-              </ReactMarkdown>
-            ) : (
-              safeContent
-            )}
-            {message.isCancelled && (
-              <span className="text-neutral-500 dark:text-neutral-400 text-xs ml-2">
-                (cancelled)
-              </span>
-            )}
-          </div>
+          <>
+            <div
+              className={cn('break-words', !markdown && 'whitespace-pre-wrap')}
+              data-slot="message-content-text"
+            >
+              {!contentToRender ? (
+                <span className="text-neutral-500 dark:text-neutral-400 italic">
+                  Empty message
+                </span>
+              ) : React.isValidElement(contentToRender) ? (
+                contentToRender
+              ) : markdown ? (
+                <ReactMarkdown components={createMarkdownComponents()}>
+                  {typeof safeContent === 'string' ? safeContent : ''}
+                </ReactMarkdown>
+              ) : (
+                safeContent
+              )}
+              {message.isCancelled && (
+                <span className="text-neutral-500 dark:text-neutral-400 text-xs ml-2">
+                  (cancelled)
+                </span>
+              )}
+            </div>
+
+            {/* Add TTS controls for assistant messages */}
+            {showTTS &&
+              role === 'assistant' &&
+              textContent &&
+              !message.isCancelled && (
+                <div className="mt-2 flex items-center">
+                  <TextToSpeechStream
+                    text={textContent}
+                    autoPlay={true}
+                    showControls={true}
+                    className="text-xs"
+                  />
+                </div>
+              )}
+          </>
         )}
       </div>
     );

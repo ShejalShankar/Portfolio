@@ -18,7 +18,7 @@ import {
 } from 'app/components/tambo/thread-content';
 import type { VariantProps } from 'class-variance-authority';
 import { cn } from 'lib/utils';
-import { MessageSquare, Mic, Square, X } from 'lucide-react';
+import { MessageSquare, Mic, Square, X, PanelRightClose } from 'lucide-react';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 
@@ -160,7 +160,7 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
               {isMinimalMode ? (
                 <MessageSquare className="w-5 h-5" />
               ) : (
-                <X className="w-5 h-5" />
+                <PanelRightClose className="w-5 h-5" />
               )}
             </button>
           </div>
