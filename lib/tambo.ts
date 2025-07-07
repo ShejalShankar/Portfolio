@@ -14,6 +14,10 @@ import {
   GuestbookHighlightSchema,
 } from '../app/components/guestbook/guestbook-display';
 import {
+  JobAnalysisCard,
+  JobAnalysisCardSchema,
+} from '../app/components/job-analysis-card';
+import {
   PhotoGridSection,
   PhotoGridSectionSchema,
 } from '../app/components/photo-grid-section';
@@ -35,6 +39,7 @@ import {
 } from '../app/components/social-media-card';
 import { blogTools } from './tools/blog-tools';
 import { guestbookTools } from './tools/guestbook-tools';
+import { jobScraperTools } from './tools/job-scraper-tools';
 
 export const components: TamboComponent[] = [
   {
@@ -190,9 +195,22 @@ Perfect for:
     component: ResumeButton,
     propsSchema: ResumeButtonSchema,
   },
+  {
+    name: 'JobAnalysisCard',
+    description: `A component that displays job analysis results in a structured format. Use this after analyzing a job posting to show:
+    - Job title and company
+    - Location and experience requirements
+    - Key skills needed
+    - How Akhilesh matches the requirements
+    - Optional fit score (0-100)
+
+Perfect for presenting job analysis results when recruiters share job links. Shows matching points with checkmarks and skills in badges.`,
+    component: JobAnalysisCard,
+    propsSchema: JobAnalysisCardSchema,
+  },
 ];
 
 // Export tools separately so they can be registered in the provider
-export const tools = [...blogTools, ...guestbookTools];
+export const tools = [...blogTools, ...guestbookTools, ...jobScraperTools];
 
 export default components;
