@@ -15,7 +15,7 @@ const navItems: Record<string, NavItem> = {
   '/guestbook': {
     name: 'guestbook',
   },
-  'https://drive.google.com/file/d/1f-YG86g7FeXBarBtjkxKRjC6BheMDGci/view?usp=sharing':
+  [process.env.RESUME_URL!]:
     {
       name: 'resume',
       external: true,
