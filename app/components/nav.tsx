@@ -20,6 +20,11 @@ const navItems: Record<string, NavItem> = {
       name: 'resume',
       external: true,
     },
+  [process.env.CAL_URL!]:
+    {
+      name: 'calendar',
+      external: true,
+    },
 };
 
 export function Navbar() {
