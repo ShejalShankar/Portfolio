@@ -7,9 +7,9 @@ import { WritingSection } from 'app/components/writing-section';
 import { getBlogPosts } from 'app/db/blog';
 import { PreloadResources } from 'app/preload';
 import { userData } from 'lib/data';
-import me from 'public/images/home/me.jpg';
-import me2 from 'public/images/home/me2.jpg';
-import me3 from 'public/images/home/me3.jpg';
+import me from 'public/images/home/me.jpeg';
+import me2 from 'public/images/home/me2.jpeg';
+import me3 from 'public/images/home/me3.jpeg';
 
 export default function Page() {
   const allBlogs = getBlogPosts();
@@ -22,9 +22,9 @@ export default function Page() {
 
   // Hero section data
   const heroData = {
-    name: "hey, I'm Akhilesh 👋",
+    name: "Hey, I'm Shejal 👋",
     description:
-      'A Software Dev from India. I develop stuff ranging from state-of-the-art to just-for-fun and everything in between!',
+      'A Full-Stack Developer and an AI Enthusiast. I love building intelligent systems, exploring new placesand experiencing everything life has to offer. Also a huge car enthusiast who enjoys the perfect blend of engineering and design — both on the road and in code.',
   };
 
   // Photo grid data
@@ -37,43 +37,36 @@ export default function Page() {
   // Projects data - simplified to match original structure
   const projectsData = [
     {
-      title: 'Sandbox IDE',
-      description: 'Open-source cloud IDE with live collaboration',
-      url: 'https://sandbox.gitwit.dev/',
+      title: 'AI Powered Market Intelligence',
+      description: 'AI-driven market research tool for competitive analysis',
+      url: 'https://github.com/shejalshankar/Finanace_Assistant',
     },
     {
-      title: 'DressUp AI',
-      description: 'AI-driven styling app with personalized recommendations',
-      url: 'https://soundsgood-fashion-generator.vercel.app/analyze',
+      title: 'Brain Tumor Detection with SRGAN',
+      description: 'AI model for brain tumor detection using super-resolution GANs',
+      url: 'https://github.com/ShejalShankar/BrainTumor_Detection',
     },
   ];
 
   // Current work data - keeping the original inline structure
   const workData = [
     <p key="tambo">
-      Software Development Intern at{' '}
-      <Badge href="https://tambo.co" underline={true}>
-        tambo ai
+      Full Stack Software Developer{' '}
+      <Badge href="https://home.gabrielai.co/" underline={true}>
+        Gabriel AI
       </Badge>
       .
     </p>,
     <p key="gitwit">
-      Working with{' '}
-      <Badge href="https://jamesmurdza.com" underline={false}>
-        James Murdza
+      Working on a Personal Project: {' '}
+      <Badge href="https://github.com/shejalshankar/AI_Agent_Event_Mapper" underline={false}>
+        Agentic AI Event Mapper
       </Badge>{' '}
       on{' '}
-      <Badge href="https://www.gitwit.dev" underline={true}>
-        GitWit.dev
+      <Badge href="https://github.com/shejalshankar/AI_Agent_Event_Mapper" underline={true}>
+        AI Event Mapper
       </Badge>
-      , an AI-powered, open source cloud IDE.
-    </p>,
-    <p key="gwu">
-      Research Assistant in AI at{' '}
-      <Badge href="https://www.gwu.edu/" underline={true}>
-        GWU
-      </Badge>
-      , building high-performance chatbots and educational platforms.
+      , an AI-powered, open source event mapping tool.
     </p>,
   ];
 
@@ -87,7 +80,6 @@ export default function Page() {
 
   // Connect data
   const connectData = [
-    { name: 'Twitter', url: userData.twitter, external: true },
     {
       name: 'LinkedIn',
       url: userData.linkedin,

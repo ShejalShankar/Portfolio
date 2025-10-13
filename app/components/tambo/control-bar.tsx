@@ -1,143 +1,80 @@
-'use client';
+"use client";
 
-import { useTambo, useTamboThread } from '@tambo-ai/react';
-import { CanvasSpace } from 'app/components/tambo/canvas-space';
-import type { messageVariants } from 'app/components/tambo/message';
+import { useTambo, useTamboThread } from "@tambo-ai/react";
+import { CanvasSpace } from "app/components/tambo/canvas-space";
+import type { messageVariants } from "app/components/tambo/message";
 import {
   MessageInput,
   MessageInputError,
-  MessageInputSpeechButton,
   MessageInputSubmitButton,
   MessageInputTextarea,
   MessageInputToolbar,
-} from 'app/components/tambo/message-input';
-import { ScrollableMessageContainer } from 'app/components/tambo/scrollable-message-container';
+} from "app/components/tambo/message-input";
+import { ScrollableMessageContainer } from "app/components/tambo/scrollable-message-container";
 import {
   ThreadContent,
   ThreadContentMessages,
-} from 'app/components/tambo/thread-content';
-import type { VariantProps } from 'class-variance-authority';
-import { audioManager } from 'lib/audio-manager';
-import { cn } from 'lib/utils';
-import { MessageSquare, Mic, PanelRightClose, Square, X } from 'lucide-react';
-import * as React from 'react';
-import { createPortal } from 'react-dom';
+} from "app/components/tambo/thread-content";
+import type { VariantProps } from "class-variance-authority";
+import { cn } from "lib/utils";
+import { MessageSquare, PanelRightClose, X } from "lucide-react";
+import * as React from "react";
+import { createPortal } from "react-dom";
 
-/**
- * Props for the ControlBar component
- * @interface
- * @extends React.HTMLAttributes<HTMLDivElement>
- */
 export interface ControlBarProps extends React.HTMLAttributes<HTMLDivElement> {
-  /** Optional context key for the thread */
   contextKey?: string;
-  /** Keyboard shortcut for toggling the control bar (default: "mod+k") */
   hotkey?: string;
-  /**
-   * Controls the visual styling of messages in the thread.
-   * Possible values include: "default", "compact", etc.
-   * These values are defined in messageVariants from "@/components/tambo/message".
-   * @example variant="compact"
-   */
-  variant?: VariantProps<typeof messageVariants>['variant'];
+  variant?: VariantProps<typeof messageVariants>["variant"];
 }
 
-/**
- * A floating control bar component for quick access to chat functionality
- * @component
- * @example
- * ```tsx
- * <ControlBar
- *   contextKey="my-thread"
- *   hotkey="mod+k"
- *   className="custom-styles"
- * />
- * ```
- */
 export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
-  ({ className, contextKey, hotkey = 'mod+k', variant, ...props }, ref) => {
+  ({ className, contextKey, hotkey = "mod+k", variant, ...props }, ref) => {
     const [open, setOpen] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
     const [isMinimalMode, setIsMinimalMode] = React.useState(true);
-    const [isRecording, setIsRecording] = React.useState(false);
-    const [isSpeaking, setIsSpeaking] = React.useState(false);
     const isMac =
-      typeof navigator !== 'undefined' && navigator.platform.startsWith('Mac');
+      typeof navigator !== "undefined" && navigator.platform.startsWith("Mac");
+
     const { thread } = useTambo();
     const { cancel, isIdle } = useTamboThread();
 
-    // Track TTS state using audio manager
-    React.useEffect(() => {
-      const updateSpeakingState = () => {
-        setIsSpeaking(audioManager.isPlaying());
-      };
-
-      // Subscribe to audio manager updates
-      const unsubscribe = audioManager.subscribe(updateSpeakingState);
-
-      // Also listen to custom events for backward compatibility
-      const handleTTSStarted = () => {
-        setIsSpeaking(true);
-      };
-
-      const handleTTSEnded = () => {
-        // Check with audio manager to be sure
-        setIsSpeaking(audioManager.isPlaying());
-      };
-
-      window.addEventListener('tambo:ttsStarted', handleTTSStarted);
-      window.addEventListener('tambo:ttsEnded', handleTTSEnded);
-
-      // Initial state
-      updateSpeakingState();
-
-      return () => {
-        unsubscribe();
-        window.removeEventListener('tambo:ttsStarted', handleTTSStarted);
-        window.removeEventListener('tambo:ttsEnded', handleTTSEnded);
-      };
-    }, []);
-
-    // Emit minimal mode change events
+    // Handle minimal mode toggle event
     React.useEffect(() => {
       window.dispatchEvent(
-        new CustomEvent('tambo:minimalModeChanged', {
+        new CustomEvent("tambo:minimalModeChanged", {
           detail: { isMinimalMode: isMinimalMode || !open },
         })
       );
     }, [isMinimalMode, open]);
 
-    // Ensure we're mounted before creating portal
+    // Ensure we're mounted before rendering portal
     React.useEffect(() => {
       setMounted(true);
     }, []);
 
+    // Hotkey toggle
     React.useEffect(() => {
       const down = (e: KeyboardEvent) => {
-        const [modifier, key] = hotkey.split('+');
+        const [modifier, key] = hotkey.split("+");
         const isModifierPressed =
-          modifier === 'mod' ? e.metaKey || e.ctrlKey : false;
+          modifier === "mod" ? e.metaKey || e.ctrlKey : false;
         if (e.key === key && isModifierPressed) {
           e.preventDefault();
-          setOpen(open => !open);
+          setOpen((open) => !open);
         }
       };
-      document.addEventListener('keydown', down);
-      return () => document.removeEventListener('keydown', down);
+      document.addEventListener("keydown", down);
+      return () => document.removeEventListener("keydown", down);
     }, [hotkey]);
 
-    // Handle escape key
+    // Close on ESC
     React.useEffect(() => {
       if (!open) return;
-
       const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          setOpen(false);
-        }
+        if (e.key === "Escape") setOpen(false);
       };
-
-      document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
     }, [open]);
 
     const modalContent = open ? (
@@ -146,59 +83,36 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
         <div
           className="fixed inset-0 bg-black/40 z-[9998]"
           onClick={() => setOpen(false)}
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         />
 
         {/* Split Layout Container */}
-        <div
-          className="fixed inset-0 z-[9999] flex"
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 9999,
-          }}
-        >
-          {/* Canvas Space - full width in minimal mode */}
-          <div className={cn('relative', isMinimalMode ? 'flex-1' : 'flex-1')}>
+        <div className="fixed inset-0 z-[9999] flex">
+          {/* Canvas Space */}
+          <div className={cn("relative flex-1")}>
             <CanvasSpace className="h-full border-none bg-white/70 dark:bg-neutral-900/70" />
 
-            {/* Close button - positioned in top left of canvas */}
+            {/* Close button */}
             <button
               onClick={() => setOpen(false)}
               className={cn(
-                'absolute top-4 left-4 z-10',
-                'w-10 h-10',
-                'bg-white/80 dark:bg-neutral-900/80',
-                'border border-neutral-200 dark:border-neutral-800',
-                'rounded-sm',
-                'shadow-sm hover:shadow-md',
-                'transition-all duration-200',
-                'flex items-center justify-center',
-                'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'
+                "absolute top-4 left-4 z-10 w-10 h-10 bg-white/80 dark:bg-neutral-900/80",
+                "border border-neutral-200 dark:border-neutral-800 rounded-sm shadow-sm hover:shadow-md transition-all",
+                "flex items-center justify-center text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
               )}
               aria-label="Close"
             >
               <X className="w-5 h-5" />
             </button>
 
-            {/* Toggle button - positioned in top right of canvas */}
+            {/* Toggle chat button */}
             <button
               onClick={() => setIsMinimalMode(!isMinimalMode)}
               className={cn(
-                'absolute top-4 right-4 z-10',
-                'w-10 h-10',
-                'bg-white/80 dark:bg-neutral-900/80',
-                'border border-neutral-200 dark:border-neutral-800',
-                'rounded-sm',
-                'shadow-sm hover:shadow-md',
-                'transition-all duration-200',
-                'flex items-center justify-center',
-                'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'
+                "absolute top-4 right-4 z-10 w-10 h-10 bg-white/80 dark:bg-neutral-900/80",
+                "border border-neutral-200 dark:border-neutral-800 rounded-sm shadow-sm hover:shadow-md transition-all",
+                "flex items-center justify-center text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
               )}
-              aria-label={isMinimalMode ? 'Show chat' : 'Hide chat'}
+              aria-label={isMinimalMode ? "Show chat" : "Hide chat"}
             >
               {isMinimalMode ? (
                 <MessageSquare className="w-5 h-5" />
@@ -208,19 +122,17 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
             </button>
           </div>
 
-          {/* Always render messages but hide them visually when in minimal mode */}
-          {/* This ensures TTS can work even when chat is collapsed */}
+          {/* Right-hand Chat Panel */}
           <div
             ref={ref}
             className={cn(
-              'w-[440px] bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm h-full flex flex-col shadow-lg transition-all duration-300',
-              isMinimalMode && 'sr-only', // Hide visually but keep in DOM for TTS
+              "w-[440px] bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm h-full flex flex-col shadow-lg transition-all duration-300",
+              isMinimalMode && "sr-only",
               className
             )}
             {...props}
           >
             <div className="flex flex-col h-full p-4 gap-4">
-              {/* Chat messages area - always render container with flex-1 */}
               <div className="flex-1 min-h-0">
                 {thread?.messages?.length > 0 && (
                   <ScrollableMessageContainer className="h-full bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-lg p-4 overflow-y-auto">
@@ -231,13 +143,11 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
                 )}
               </div>
 
-              {/* Message input at bottom - only show when not in minimal mode */}
               {!isMinimalMode && (
                 <div className="bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm rounded-lg p-3">
                   <MessageInput contextKey={contextKey}>
                     <MessageInputTextarea placeholder="Ask me anything or paste a job link..." />
                     <MessageInputToolbar>
-                      <MessageInputSpeechButton />
                       <MessageInputSubmitButton />
                     </MessageInputToolbar>
                     <MessageInputError />
@@ -246,168 +156,32 @@ export const ControlBar = React.forwardRef<HTMLDivElement, ControlBarProps>(
               )}
             </div>
           </div>
-
-          {/* Floating button in minimal mode - handles both mic and stop */}
-          {isMinimalMode && (
-            <div
-              className="fixed bottom-6 right-6 z-50"
-              style={{
-                position: 'fixed',
-                bottom: '1.5rem',
-                right: '1.5rem',
-                zIndex: 50,
-              }}
-            >
-              {/* Show stop button when thread is running OR when speaking */}
-              {!isIdle || isSpeaking ? (
-                <div className="relative">
-                  {/* Background glow effect - different color for speaking */}
-                  <div
-                    className="absolute inset-0 -z-10 rounded-sm transition-all duration-500 animate-pulse-glow"
-                    style={{
-                      background: isSpeaking
-                        ? 'radial-gradient(circle at center, rgba(34, 197, 94, 0.4) 0%, rgba(34, 197, 94, 0.25) 40%, rgba(34, 197, 94, 0.15) 70%, rgba(34, 197, 94, 0.05) 85%, transparent 100%)'
-                        : 'radial-gradient(circle at center, rgba(255, 59, 48, 0.4) 0%, rgba(255, 59, 48, 0.25) 40%, rgba(255, 59, 48, 0.15) 70%, rgba(255, 59, 48, 0.05) 85%, transparent 100%)',
-                      filter: 'blur(16px)',
-                      transform: 'scale(2.5)',
-                    }}
-                  />
-
-                  <button
-                    onClick={() => {
-                      // Stop all TTS when stop button is clicked
-                      window.dispatchEvent(new CustomEvent('tambo:stopAllTTS'));
-                      cancel();
-                    }}
-                    className={cn(
-                      'w-12 h-12',
-                      'bg-white/80 dark:bg-neutral-900/80',
-                      'border border-neutral-200 dark:border-neutral-800',
-                      'rounded-sm',
-                      'shadow-sm hover:shadow-md',
-                      'transition-all duration-200',
-                      'flex items-center justify-center',
-                      isSpeaking
-                        ? 'text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300'
-                        : 'text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300'
-                    )}
-                    aria-label={isSpeaking ? 'Stop speaking' : 'Stop thread'}
-                  >
-                    <Square className="w-5 h-5" fill="currentColor" />
-                  </button>
-                </div>
-              ) : (
-                // Show mic button when idle
-                <MessageInput
-                  contextKey={contextKey}
-                  className="!w-auto [&>div]:!border-0 [&>div]:!bg-transparent [&>div]:!shadow-none [&>div]:!p-0"
-                >
-                  {/* Hidden form elements to maintain context */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      width: '1px',
-                      height: '1px',
-                      padding: 0,
-                      margin: '-1px',
-                      overflow: 'hidden',
-                      clip: 'rect(0, 0, 0, 0)',
-                      whiteSpace: 'nowrap',
-                      borderWidth: 0,
-                    }}
-                  >
-                    <MessageInputTextarea />
-                    <MessageInputSubmitButton />
-                  </div>
-
-                  {/* Custom styled speech button */}
-                  <div className="relative">
-                    {/* Background glow effect */}
-                    <div
-                      className="absolute inset-0 -z-10 rounded-sm transition-all duration-500 animate-pulse-glow"
-                      style={{
-                        background: isRecording
-                          ? 'radial-gradient(circle at center, rgba(255, 59, 48, 0.4) 0%, rgba(255, 59, 48, 0.25) 40%, rgba(255, 59, 48, 0.15) 70%, rgba(255, 59, 48, 0.05) 85%, transparent 100%)'
-                          : 'radial-gradient(circle at center, rgba(128, 128, 128, 0.4) 0%, rgba(128, 128, 128, 0.25) 40%, rgba(128, 128, 128, 0.15) 70%, rgba(128, 128, 128, 0.05) 85%, transparent 100%)',
-                        filter: 'blur(16px)',
-                        transform: 'scale(2.5)',
-                      }}
-                    />
-
-                    <MessageInputSpeechButton
-                      // Hide the default "Listening..." text
-                      className="[&>div>div:nth-child(2)]:hidden"
-                      buttonClassName={cn(
-                        'w-12 h-12',
-                        'bg-white/80 dark:bg-neutral-900/80',
-                        'border border-neutral-200 dark:border-neutral-800',
-                        'rounded-sm',
-                        'shadow-sm hover:shadow-md',
-                        'transition-all duration-200',
-                        'flex items-center justify-center',
-                        'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100'
-                      )}
-                      onRecordingChange={setIsRecording}
-                    />
-                  </div>
-                </MessageInput>
-              )}
-            </div>
-          )}
         </div>
       </>
     ) : null;
 
     return (
       <>
-        {/* Minimalist trigger button */}
+        {/* Floating Trigger Button */}
         <button
           onClick={() => setOpen(true)}
           aria-label="Open chat"
           className={cn(
-            'fixed bottom-6 right-6 z-50',
-            'w-12 h-12',
-            'bg-white dark:bg-neutral-900',
-            'border border-neutral-200 dark:border-neutral-800',
-            'rounded-sm',
-            'shadow-sm hover:shadow-md',
-            'transition-all duration-200',
-            'flex items-center justify-center',
-            'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100',
-            'animate-pulse-wave'
+            "fixed bottom-6 right-6 z-50 w-12 h-12 bg-white dark:bg-neutral-900",
+            "border border-neutral-200 dark:border-neutral-800 rounded-sm shadow-sm hover:shadow-md transition-all",
+            "flex items-center justify-center text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 animate-pulse-wave"
           )}
-          style={{
-            position: 'fixed',
-            bottom: '1.5rem',
-            right: '1.5rem',
-            zIndex: 50,
-            outline: 'none',
-            border: 'none',
-            boxShadow: 'none',
-          }}
         >
-          {/* Background light effect with pulse */}
-          <div
-            className="absolute inset-0 -z-10 rounded-lg animate-pulse-glow"
-            style={{
-              background:
-                'radial-gradient(circle at center, rgba(128, 128, 128, 0.4) 0%, rgba(128, 128, 128, 0.25) 40%, rgba(128, 128, 128, 0.15) 70%, rgba(128, 128, 128, 0.05) 85%, transparent 100%)',
-              filter: 'blur(16px)',
-              transform: 'scale(2.5)',
-            }}
-          />
-          <Mic className="w-5 h-5" />
-
-          {/* Keyboard shortcut hint */}
+          <MessageSquare className="w-5 h-5" />
           <span className="absolute -top-8 right-0 text-xs text-neutral-400 dark:text-neutral-500 opacity-0 hover:opacity-100 transition-opacity whitespace-nowrap">
-            {isMac ? '⌘' : 'Ctrl'}+K
+            {isMac ? "⌘" : "Ctrl"}+K
           </span>
         </button>
 
-        {/* Portal the modal to document.body */}
         {mounted && createPortal(modalContent, document.body)}
       </>
     );
   }
 );
-ControlBar.displayName = 'ControlBar';
+
+ControlBar.displayName = "ControlBar";

@@ -7,22 +7,22 @@ type NavItem = {
 
 const navItems: Record<string, NavItem> = {
   '/': {
-    name: 'home',
+    name: 'Home',
   },
   '/blog': {
-    name: 'blog',
+    name: 'Blog',
   },
-  '/guestbook': {
-    name: 'guestbook',
+  '/Projects': {
+    name: 'Projects',
   },
   [process.env.RESUME_URL!]:
     {
-      name: 'resume',
+      name: 'Resume',
       external: true,
     },
   [process.env.CAL_URL!]:
     {
-      name: 'calendar',
+      name: 'Calendar',
       external: true,
     },
 };

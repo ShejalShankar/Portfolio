@@ -11,7 +11,6 @@ import { Check, ChevronDown, ExternalLink, Loader2, X } from 'lucide-react';
 import * as React from 'react';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { TextToSpeechStream } from '../text-to-speech/text-to-speech-stream';
 
 /**
  * CSS variants for the message container
@@ -339,12 +338,6 @@ const MessageContent = React.forwardRef<HTMLDivElement, MessageContentProps>(
               textContent &&
               !message.isCancelled && (
                 <div className="flex items-center">
-                  <TextToSpeechStream
-                    text={textContent}
-                    autoPlay={true}
-                    showControls={true}
-                    className="text-xs"
-                  />
                 </div>
               )}
           </>
