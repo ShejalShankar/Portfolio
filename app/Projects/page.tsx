@@ -21,9 +21,9 @@ export default function ProjectsPage() {
           link="https://github.com/ShejalShankar/BrainTumor_Detection"
         />
         <ProjectCard
-          title="Monitoring Stack with Prometheus & Grafana"
-          description="Deployed Prometheus, Grafana, and Pushgateway on Kubernetes with TLS-secured ingress, live metrics, and custom Spring Boot integration."
-          stack={['Spring Boot', 'Kubernetes', 'Prometheus', 'Grafana']}
+          title="AI-Powered News Summarization Platform"
+          description="Delivered full-stack news summarization platform that processed 10,000+ articles, integrating BART LLM to achieve ROUGE score of 0.85."
+          stack={['React.js', 'Flask','BART', 'Redis', 'AWS S3', 'GCP', 'SQL']}
         />
       </div>
     </section>

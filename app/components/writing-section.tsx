@@ -16,7 +16,7 @@ export interface WritingSectionProps {
 }
 
 export function WritingSection({
-  title = 'Writing',
+  title = 'Highlights',
   posts,
   className,
   showAll = false,
@@ -33,20 +33,14 @@ export function WritingSection({
         {displayPosts.map((post, index) => (
           <div key={index}>
             <a
-              href={`/blog/${post.slug}`}
-              className="text-neutral-900 dark:text-neutral-100 hover:underline underline-offset-4"
+              className="text-neutral-900 dark:text-neutral-100"
             >
-              {post.title} →
+              {post.title}
             </a>
             <p className="text-neutral-600 dark:text-neutral-400 mt-1">
               {post.summary}
             </p>
             <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-              {new Date(post.publishedAt).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
             </p>
           </div>
         ))}

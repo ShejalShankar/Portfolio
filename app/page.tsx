@@ -24,7 +24,7 @@ export default function Page() {
   const heroData = {
     name: "Hey, I'm Shejal 👋",
     description:
-      'A Full-Stack Developer and an AI Enthusiast. I love building intelligent systems, exploring new placesand experiencing everything life has to offer. Also a huge car enthusiast who enjoys the perfect blend of engineering and design — both on the road and in code.',
+      'A Full-Stack Developer and an AI Enthusiast. I love building intelligent systems, exploring new places and experiencing everything life has to offer. Also a huge car enthusiast who enjoys the perfect blend of engineering and design — both on the road and in code.',
   };
 
   // Photo grid data
@@ -62,7 +62,7 @@ export default function Page() {
       <Badge href="https://github.com/shejalshankar/AI_Agent_Event_Mapper" underline={false}>
         Agentic AI Event Mapper
       </Badge>{' '}
-      on{' '}
+      {' '}
       <Badge href="https://github.com/shejalshankar/AI_Agent_Event_Mapper" underline={true}>
         AI Event Mapper
       </Badge>
@@ -71,13 +71,27 @@ export default function Page() {
   ];
 
   // Writing data
-  const writingData = sortedBlogs.map(blog => ({
-    title: blog.metadata.title,
-    summary: blog.metadata.summary,
-    slug: blog.slug,
-    publishedAt: blog.metadata.publishedAt,
-  }));
-
+  const highlights = [
+  {
+    title: 'Passion and Pursuit',
+    summary: 'Cars, travel, food, and the pursuit of unforgettable experiences.',
+    slug: 'cars x travel x Technology',
+    publishedAt: '2025',
+  },
+  {
+    title: 'Attending Grace Hopper Celebration 2025',
+    summary: 'Attending the world’s largest gathering of women technologists.',
+    slug: 'ghc-2025',
+    publishedAt: '2025',
+  },
+  {
+    title: 'Exploring AI x Full Stack',
+    summary: 'Building tools that merge intelligent automation with elegant front-end design.',
+    slug: 'ai-fullstack',
+    publishedAt: '2024',
+  },
+];
+;
   // Connect data
   const connectData = [
     {
@@ -101,7 +115,7 @@ export default function Page() {
       <PhotoGridSection photos={photoData} />
       <CurrentWorkSection workItems={workData} />
       <ProjectsSection projects={projectsData} />
-      <WritingSection posts={writingData} maxPosts={1} />
+      <WritingSection posts={highlights} maxPosts={3} />
       <ConnectSection links={connectData} />
     </section>
   );

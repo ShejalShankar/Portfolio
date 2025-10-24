@@ -9,8 +9,8 @@ const navItems: Record<string, NavItem> = {
   '/': {
     name: 'Home',
   },
-  '/blog': {
-    name: 'Blog',
+  '/skills': {
+    name: 'Technical Skills',
   },
   '/Projects': {
     name: 'Projects',
@@ -18,11 +18,6 @@ const navItems: Record<string, NavItem> = {
   [process.env.RESUME_URL!]:
     {
       name: 'Resume',
-      external: true,
-    },
-  [process.env.CAL_URL!]:
-    {
-      name: 'Calendar',
       external: true,
     },
 };
