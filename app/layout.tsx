@@ -6,7 +6,6 @@ import { userData } from 'lib/data';
 import { cn } from 'lib/utils';
 import type { Metadata } from 'next';
 import { Navbar } from './components/nav';
-import { ControlBar } from './components/tambo/control-bar';
 import './globals.css';
 import { TamboWrapper } from './wrappers/tambo-wrapper';
 
@@ -68,7 +67,6 @@ export default function RootLayout({
             <Analytics />
             <SpeedInsights />
           </main>
-          <ControlBar contextKey="tambo-context" />
         </TamboWrapper>
       </body>
     </html>
