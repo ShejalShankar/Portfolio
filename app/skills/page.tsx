@@ -37,10 +37,7 @@ export default function SkillsPage() {
     'DevOps & Infrastructure': [
       'Docker',
       'Kubernetes',
-      'Prometheus',
-      'Grafana',
-      'Longhorn',
-      'Helm',
+      
     ],
     'Cloud & Tools': [
       'AWS',
